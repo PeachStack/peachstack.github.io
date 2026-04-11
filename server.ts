@@ -23,7 +23,11 @@ async function startServer() {
 
   app.use(helmet());
   app.use(cors({
-    origin: process.env.NODE_ENV === "production" ? "https://sjujala.github.io" : "http://localhost:5173",
+    origin: process.env.NODE_ENV === "production"
+      ? (process.env.ALLOWED_ORIGINS
+          ? process.env.ALLOWED_ORIGINS.split(",")
+          : ["https://peachstackadmin.github.io", "https://sjujala.github.io"])
+      : ["http://localhost:5173", "http://localhost:3000"],
     credentials: true,
   }));
   app.use(express.json());
@@ -44,7 +48,7 @@ async function startServer() {
     const origin = req.headers.origin as string | undefined;
     const allowedOrigins = process.env.ALLOWED_ORIGINS
       ? process.env.ALLOWED_ORIGINS.split(",")
-      : ["http://localhost:3000", "http://localhost:5173", "https://sjujala.github.io"];
+      : ["http://localhost:3000", "http://localhost:5173", "https://peachstackadmin.github.io", "https://sjujala.github.io"];
     if (origin && !allowedOrigins.includes(origin)) {
       return res.status(403).json({ message: "Forbidden" });
     }

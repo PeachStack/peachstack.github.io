@@ -1,7 +1,9 @@
 import { motion } from 'motion/react';
-import { Building2, ShieldCheck, BarChart3, Users, Clock, CheckCircle2, ArrowRight, Sparkles, LayoutDashboard, PieChart, TrendingUp, Receipt } from 'lucide-react';
+import { Building2, ShieldCheck, BarChart3, Users, Clock, CheckCircle2, ArrowRight, Sparkles, LayoutDashboard, PieChart, TrendingUp, Receipt, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
+
+const EMPLOYER_FORM_URL = 'https://docs.google.com/forms/d/1uz55KEIkH3XwnVJxvdQgMMByidmsQRB9dRkVWLJb8p0/viewform';
 
 export default function ForEmployers() {
   return (
@@ -26,13 +28,15 @@ export default function ForEmployers() {
                 Access a vetted pipeline of motivated students ready to deliver high impact results. Manage projects, track performance, and handle billing all in one place.
               </p>
               <div className="flex flex-col gap-4 sm:flex-row justify-center">
-                <Link
-                  to="/employer/onboarding"
+                <a
+                  href={EMPLOYER_FORM_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 rounded-2xl bg-peach-500 px-8 py-4 text-lg font-bold text-white shadow-xl shadow-peach-500/20 transition-all hover:bg-peach-600 hover:shadow-peach-500/30 active:scale-95"
                 >
                   Get Started Now
-                  <ArrowRight size={20} />
-                </Link>
+                  <ExternalLink size={20} />
+                </a>
                 <Link
                   to="/contact"
                   className="flex items-center justify-center gap-2 rounded-2xl border-2 border-slate-800 bg-transparent px-8 py-4 text-lg font-bold text-white transition-all hover:bg-slate-900 active:scale-95"
@@ -247,12 +251,15 @@ export default function ForEmployers() {
                 Join hundreds of companies leveraging early talent to drive growth and innovation.
               </p>
               <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-                <Link
-                  to="/employer/onboarding"
-                  className="w-full rounded-2xl bg-peach-500 px-8 py-4 text-lg font-bold text-white transition-all hover:bg-peach-600 sm:w-auto"
+                <a
+                  href={EMPLOYER_FORM_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full rounded-2xl bg-peach-500 px-8 py-4 text-lg font-bold text-white transition-all hover:bg-peach-600 sm:w-auto flex items-center justify-center gap-2"
                 >
-                  Start Onboarding
-                </Link>
+                  Get Started
+                  <ExternalLink size={18} />
+                </a>
                 <Link
                   to="/contact"
                   className="w-full rounded-2xl bg-white px-8 py-4 text-lg font-bold text-slate-900 transition-all hover:bg-slate-50 sm:w-auto"

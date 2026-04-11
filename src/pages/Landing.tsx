@@ -122,7 +122,7 @@ export default function Landing() {
                 As high school seniors and college students, we saw firsthand how difficult it is to find real opportunities. Traditional internship programs often overlook early students, career fairs feel out of reach, and meaningful experience seems reserved only for upperclassmen.
               </p>
               <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-                We realized that waiting for opportunities to come to us wasn't working—so we decided to build a platform that brings those opportunities directly to students. Peachstack was born from the belief that ambition shouldn't have to wait for a degree.
+                We realized that waiting for opportunities to come to us wasn't working, so we decided to build a platform that brings those opportunities directly to students. Peachstack was born from the belief that ambition shouldn't have to wait for a degree.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                 <div>

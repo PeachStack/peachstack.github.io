@@ -33,7 +33,7 @@ const sections = [
     title: 'Platform Use',
     content: (
       <p className="text-slate-600 leading-relaxed">
-        You agree to use Peachstack only for its intended purpose — participating in the internship
+        You agree to use Peachstack only for its intended purpose: participating in the internship
         program, completing assigned tasks, and communicating with the Peachstack team. You may not
         use the platform to harass others, submit false information, attempt to gain unauthorized
         access to other accounts, or engage in any illegal activity.

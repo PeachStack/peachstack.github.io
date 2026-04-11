@@ -80,7 +80,7 @@ export default function TaskCreate() {
               <option value="">Unassigned</option>
               {interns.map(i => (
                 <option key={i.id} value={i.id}>
-                  {i.name}{i.intern_role ? ` — ${i.intern_role}` : ''}
+                  {i.name}{i.intern_role ? `, ${i.intern_role}` : ''}
                 </option>
               ))}
             </select>

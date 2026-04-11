@@ -10,7 +10,7 @@ const sections = [
     content: (
       <p className="text-slate-600 leading-relaxed">
         A cookie is a small text file stored on your device when you visit a website or log into a
-        platform. We use cookies solely for platform functionality — not for advertising or
+        platform. We use cookies solely for platform functionality, not for advertising or
         tracking.
       </p>
     ),

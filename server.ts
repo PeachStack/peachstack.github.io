@@ -5,281 +5,54 @@ import { fileURLToPath } from "url";
 import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import Database from "better-sqlite3";
-import { Resend } from "resend";
 import rateLimit from "express-rate-limit";
+import cors from "cors";
+import helmet from "helmet";
+import { db, initDb } from "./src/server/db";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const JWT_SECRET = process.env.JWT_SECRET || "peachstack-super-secret-key";
-const PORT = 3000;
-
-// Resend setup
-const resend = new Resend(process.env.RESEND_API_KEY || 're_hDVQdpBc_MCtewQMYAF6TnFb4p9Av2o2R');
-
-const sendStudentWelcomeEmail = async (studentData: any) => {
-  const { firstName, lastName, email, birthday, university, major, year, additionalAcademicDetails, whyOpportunity } = studentData;
-  const fullName = firstName && lastName ? `${firstName} ${lastName}` : (firstName || "New Student");
-  
-  try {
-    const data = await resend.emails.send({
-      from: "onboarding@resend.dev",
-      to: "peachstackadmin@gmail.com",
-      subject: `${fullName} - New Student Application`,
-      html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
-          <h1 style="color: #f97316; border-bottom: 2px solid #f97316; padding-bottom: 10px;">New Student Application</h1>
-          <p>A new student has submitted their application details.</p>
-          
-          <h2 style="color: #334155; font-size: 18px;">Personal Information</h2>
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold; width: 40%;">First Name:</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${firstName || 'N/A'}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Last Name:</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${lastName || 'N/A'}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Email:</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${email || 'N/A'}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Birthday:</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${birthday || 'N/A'}</td></tr>
-          </table>
-
-          <h2 style="color: #334155; font-size: 18px; margin-top: 20px;">Academic Details</h2>
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold; width: 40%;">University:</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${university || 'N/A'}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Major:</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${major || 'N/A'}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Year:</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${year || 'N/A'}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Additional Details:</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${Array.isArray(additionalAcademicDetails) ? additionalAcademicDetails.join(', ') : (additionalAcademicDetails || 'None')}</td></tr>
-          </table>
-
-          <h2 style="color: #334155; font-size: 18px; margin-top: 20px;">Why Peachstack?</h2>
-          <div style="padding: 15px; background-color: #f8fafc; border-radius: 4px; border-left: 4px solid #f97316; font-style: italic;">
-            ${whyOpportunity || 'No essay provided.'}
-          </div>
-          
-          <br />
-          <p style="color: #64748b; font-size: 12px;">This is an automated notification from Peachstack Admin.</p>
-        </div>
-      `,
-    });
-    console.log(`Admin notification email sent for ${email}`);
-    return { success: true, data };
-  } catch (error) {
-    console.error("Error sending admin notification email:", error);
-    return { success: false, error };
-  }
-};
-
-// Database setup
-const db = new Database("peachstack.db");
-
-// Initialize tables
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,
-    email TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL,
-    role TEXT NOT NULL CHECK(role IN ('student', 'employer', 'admin')),
-    name TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    last_login DATETIME
-  );
-
-  CREATE TABLE IF NOT EXISTS student_profiles (
-    user_id TEXT PRIMARY KEY,
-    university TEXT,
-    major TEXT,
-    minor TEXT,
-    year TEXT,
-    skills TEXT, -- JSON string
-    bio TEXT,
-    profile_picture_url TEXT,
-    badges_earned TEXT, -- JSON string
-    FOREIGN KEY(user_id) REFERENCES users(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS employer_profiles (
-    user_id TEXT PRIMARY KEY,
-    company_name TEXT NOT NULL,
-    industry TEXT,
-    company_size TEXT,
-    description TEXT,
-    logo_url TEXT,
-    contact_person TEXT,
-    FOREIGN KEY(user_id) REFERENCES users(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS contact_submissions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL,
-    message TEXT NOT NULL,
-    submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    status TEXT DEFAULT 'unread' CHECK(status IN ('unread', 'read'))
-  );
-
-  CREATE TABLE IF NOT EXISTS projects (
-    id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    description TEXT NOT NULL,
-    employer_id TEXT NOT NULL,
-    skills_required TEXT, -- JSON string
-    status TEXT DEFAULT 'open' CHECK(status IN ('open', 'closed', 'in-progress')),
-    deadline DATETIME,
-    compensation TEXT,
-    FOREIGN KEY(employer_id) REFERENCES users(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS applications (
-    id TEXT PRIMARY KEY,
-    student_id TEXT NOT NULL,
-    project_id TEXT NOT NULL,
-    status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'accepted', 'rejected')),
-    applied_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    cover_letter TEXT,
-    FOREIGN KEY(student_id) REFERENCES users(id),
-    FOREIGN KEY(project_id) REFERENCES projects(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS badges (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    student_id TEXT NOT NULL,
-    badge_name TEXT NOT NULL,
-    earned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    description TEXT,
-    FOREIGN KEY(student_id) REFERENCES users(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS student_onboarding (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    first_name TEXT NOT NULL,
-    last_name TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    birthday TEXT,
-    university TEXT,
-    major TEXT,
-    year TEXT,
-    additional_details TEXT, -- JSON string
-    why_opportunity TEXT,
-    submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected'))
-  );
-
-  CREATE TABLE IF NOT EXISTS tasks (
-    id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    description TEXT NOT NULL,
-    project_id TEXT,
-    created_by TEXT NOT NULL,
-    assigned_to TEXT,
-    status TEXT DEFAULT 'open' CHECK(status IN ('open','in_progress','in_review','completed','blocked')),
-    priority TEXT DEFAULT 'medium' CHECK(priority IN ('low','medium','high','urgent')),
-    due_date TEXT,
-    estimated_hours REAL,
-    actual_hours REAL,
-    tags TEXT DEFAULT '[]',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    completed_at DATETIME,
-    FOREIGN KEY(created_by) REFERENCES users(id),
-    FOREIGN KEY(assigned_to) REFERENCES users(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS task_comments (
-    id TEXT PRIMARY KEY,
-    task_id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    content TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(task_id) REFERENCES tasks(id),
-    FOREIGN KEY(user_id) REFERENCES users(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS task_activity_log (
-    id TEXT PRIMARY KEY,
-    task_id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    action TEXT NOT NULL,
-    old_value TEXT,
-    new_value TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(task_id) REFERENCES tasks(id),
-    FOREIGN KEY(user_id) REFERENCES users(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS cohorts (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    start_date TEXT,
-    end_date TEXT,
-    status TEXT DEFAULT 'upcoming' CHECK(status IN ('upcoming','active','completed')),
-    max_capacity INTEGER DEFAULT 10,
-    fee_amount REAL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS cohort_members (
-    cohort_id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    status TEXT DEFAULT 'active' CHECK(status IN ('active','completed','removed')),
-    payment_status TEXT DEFAULT 'unpaid' CHECK(payment_status IN ('unpaid','partial','paid')),
-    PRIMARY KEY(cohort_id, user_id),
-    FOREIGN KEY(cohort_id) REFERENCES cohorts(id),
-    FOREIGN KEY(user_id) REFERENCES users(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS admin_audit_log (
-    id TEXT PRIMARY KEY,
-    admin_id TEXT NOT NULL,
-    action TEXT NOT NULL,
-    target_type TEXT,
-    target_id TEXT,
-    details TEXT,
-    ip_address TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS announcements (
-    id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    content TEXT NOT NULL,
-    created_by TEXT NOT NULL,
-    is_pinned INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-`);
-
-try {
-  db.prepare("ALTER TABLE student_onboarding ADD COLUMN why_opportunity TEXT").run();
-} catch (e) {
-  // Column already exists
-}
-try { db.prepare("ALTER TABLE users ADD COLUMN is_superadmin INTEGER DEFAULT 0").run(); } catch(e) {}
-try { db.prepare("ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1").run(); } catch(e) {}
-try { db.prepare("ALTER TABLE users ADD COLUMN token_version INTEGER DEFAULT 0").run(); } catch(e) {}
-try { db.prepare("ALTER TABLE contact_submissions ADD COLUMN is_read INTEGER DEFAULT 0").run(); } catch(e) {}
-try { db.prepare("ALTER TABLE contact_submissions ADD COLUMN is_archived INTEGER DEFAULT 0").run(); } catch(e) {}
-
-// Seed initial data if empty
-const userCount = db.prepare("SELECT COUNT(*) as count FROM users").get() as any;
-if (userCount.count === 0) {
-  const studentId = "1";
-  const employerId = "2";
-  
-  const insertUser = db.prepare("INSERT INTO users (id, email, password, name, role) VALUES (?, ?, ?, ?, ?)");
-  insertUser.run(studentId, "student@peachstack.com", bcrypt.hashSync("password123", 10), "Alex Johnson", "student");
-  insertUser.run(employerId, "employer@peachstack.com", bcrypt.hashSync("password123", 10), "Sarah Miller", "employer");
-
-  const insertStudent = db.prepare("INSERT INTO student_profiles (user_id, university, major, year, skills) VALUES (?, ?, ?, ?, ?)");
-  insertStudent.run(studentId, "Stanford University", "Computer Science", "Junior", JSON.stringify(["React", "Node.js", "Python"]));
-
-  const insertEmployer = db.prepare("INSERT INTO employer_profiles (user_id, company_name, industry, company_size) VALUES (?, ?, ?, ?)");
-  insertEmployer.run(employerId, "PeachTech", "Technology", "50-200");
-}
+const PORT = Number(process.env.PORT) || 3000;
 
 async function startServer() {
+  await initDb();
+
   const app = express();
+
+  app.use(helmet());
+  app.use(cors({
+    origin: process.env.NODE_ENV === "production" ? "https://sjujala.github.io" : "http://localhost:5173",
+    credentials: true,
+  }));
   app.use(express.json());
   app.use(cookieParser());
 
-  // Auth Middleware
+  // ─── Rate limiters ───────────────────────────────────────────────────────────
+  const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false });
+  const publicLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false });
+  const adminApiLimiter = rateLimit({ windowMs: 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false });
+  const studentApiLimiter = rateLimit({ windowMs: 60 * 1000, max: 60, standardHeaders: true, legacyHeaders: false });
+
+  app.use("/api/login", loginLimiter);
+  app.use("/api/contact", publicLimiter);
+
+  // ─── CSRF protection ─────────────────────────────────────────────────────────
+  const csrfCheck = (req: any, res: any, next: any) => {
+    if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
+    const origin = req.headers.origin as string | undefined;
+    const allowedOrigins = process.env.ALLOWED_ORIGINS
+      ? process.env.ALLOWED_ORIGINS.split(",")
+      : ["http://localhost:3000", "http://localhost:5173", "https://sjujala.github.io"];
+    if (origin && !allowedOrigins.includes(origin)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    next();
+  };
+  app.use(csrfCheck);
+
+  // ─── Auth middleware ─────────────────────────────────────────────────────────
   const authenticate = (req: any, res: any, next: any) => {
     const token = req.cookies.token;
     if (!token) return res.status(401).json({ message: "Not authenticated" });
@@ -292,23 +65,63 @@ async function startServer() {
     }
   };
 
-  // API routes
+  const requireAdmin = async (req: any, res: any, next: any) => {
+    const token = req.cookies.token;
+    if (!token) return res.status(401).json({ message: "Not authenticated" });
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      if (decoded.role !== "admin" && decoded.role !== "superadmin" && !decoded.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const result = await db.execute({ sql: "SELECT token_version, is_active FROM users WHERE id = ?", args: [decoded.id] });
+      const user = result.rows[0] as any;
+      if (!user || !user.is_active) return res.status(403).json({ message: "Account deactivated" });
+      if (user.token_version !== undefined && decoded.tokenVersion !== undefined && decoded.tokenVersion !== user.token_version) {
+        return res.status(401).json({ message: "Session expired" });
+      }
+      req.user = decoded;
+      next();
+    } catch (error) {
+      res.status(401).json({ message: "Invalid token" });
+    }
+  };
+
+  const requireSuperadmin = async (req: any, res: any, next: any) => {
+    const token = req.cookies.token;
+    if (!token) return res.status(401).json({ message: "Not authenticated" });
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      if (decoded.role !== "admin" && decoded.role !== "superadmin" && !decoded.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const result = await db.execute({ sql: "SELECT token_version, is_active FROM users WHERE id = ?", args: [decoded.id] });
+      const user = result.rows[0] as any;
+      if (!user || !user.is_active) return res.status(403).json({ message: "Account deactivated" });
+      if (user.token_version !== undefined && decoded.tokenVersion !== undefined && decoded.tokenVersion !== user.token_version) {
+        return res.status(401).json({ message: "Session expired" });
+      }
+      req.user = decoded;
+      if (req.user.role !== "superadmin" && !req.user.isSuperadmin) {
+        return res.status(403).json({ message: "Superadmin access required" });
+      }
+      next();
+    } catch (error) {
+      res.status(401).json({ message: "Invalid token" });
+    }
+  };
+
+  // ─── Public Auth Routes ───────────────────────────────────────────────────────
   app.post("/api/register", async (req, res) => {
     const { email, password, name, role } = req.body;
-    const id = Math.random().toString(36).substring(2, 15);
+    const id = crypto.randomUUID();
     const hashedPassword = await bcrypt.hash(password, 10);
-
     try {
-      db.prepare("INSERT INTO users (id, email, password, name, role) VALUES (?, ?, ?, ?, ?)").run(id, email, hashedPassword, name, role);
-      
+      await db.execute({ sql: "INSERT INTO users (id, email, password, name, role) VALUES (?, ?, ?, ?, ?)", args: [id, email, hashedPassword, name, role] });
       if (role === "student") {
-        db.prepare("INSERT INTO student_profiles (user_id) VALUES (?)").run(id);
-        // Fire and forget email to admin
-        sendStudentWelcomeEmail({ firstName: name, email });
+        await db.execute({ sql: "INSERT INTO student_profiles (user_id) VALUES (?)", args: [id] });
       } else if (role === "employer") {
-        db.prepare("INSERT INTO employer_profiles (user_id, company_name) VALUES (?, ?)").run(id, name);
+        await db.execute({ sql: "INSERT INTO employer_profiles (user_id, company_name) VALUES (?, ?)", args: [id, name] });
       }
-
       res.status(201).json({ message: "User registered successfully" });
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -317,32 +130,19 @@ async function startServer() {
 
   app.post("/api/login", async (req, res) => {
     const { email, password } = req.body;
-    const user = db.prepare("SELECT * FROM users WHERE email = ?").get(email) as any;
-
+    const result = await db.execute({ sql: "SELECT * FROM users WHERE email = ?", args: [email] });
+    const user = result.rows[0] as any;
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
-
-    db.prepare("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?").run(user.id);
-
+    await db.execute({ sql: "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?", args: [user.id] });
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role, name: user.name }, JWT_SECRET, { expiresIn: "24h" });
-    
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    });
-
+    res.cookie("token", token, { httpOnly: true, secure: true, sameSite: "none", maxAge: 24 * 60 * 60 * 1000 });
     res.json({ user: { id: user.id, email: user.email, role: user.role, name: user.name } });
   });
 
   app.post("/api/logout", (req, res) => {
-    res.clearCookie("token", {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none"
-    });
+    res.clearCookie("token", { httpOnly: true, secure: true, sameSite: "none" });
     res.json({ message: "Logged out successfully" });
   });
 
@@ -357,516 +157,613 @@ async function startServer() {
     }
   });
 
-  // Student Profiles
-  app.get("/api/students/:id", authenticate, (req, res) => {
-    const profile = db.prepare(`
-      SELECT u.name, u.email, s.* 
-      FROM users u 
-      JOIN student_profiles s ON u.id = s.user_id 
-      WHERE u.id = ?
-    `).get(req.params.id) as any;
+  // ─── Student Profiles ─────────────────────────────────────────────────────────
+  app.get("/api/students/:id", authenticate, async (req, res) => {
+    const result = await db.execute({
+      sql: "SELECT u.name, u.email, s.* FROM users u JOIN student_profiles s ON u.id = s.user_id WHERE u.id = ?",
+      args: [req.params.id],
+    });
+    const profile = result.rows[0] as any;
     if (!profile) return res.status(404).json({ message: "Profile not found" });
     profile.skills = JSON.parse(profile.skills || "[]");
     profile.badges_earned = JSON.parse(profile.badges_earned || "[]");
     res.json(profile);
   });
 
-  app.put("/api/students/:id", authenticate, (req: any, res: any) => {
+  app.put("/api/students/:id", authenticate, async (req: any, res: any) => {
     if (req.user.id !== req.params.id && req.user.role !== "admin") {
       return res.status(403).json({ message: "Forbidden" });
     }
     const { university, major, minor, year, skills, bio, profile_picture_url } = req.body;
-    db.prepare(`
-      UPDATE student_profiles 
-      SET university = ?, major = ?, minor = ?, year = ?, skills = ?, bio = ?, profile_picture_url = ?
-      WHERE user_id = ?
-    `).run(university, major, minor, year, JSON.stringify(skills), bio, profile_picture_url, req.params.id)
-    // Send email notification
-    try {
-      await resend.emails.send({
-        from: 'onboarding@resend.dev',
-        to: 'peachstackadmin@gmail.com',
-        subject: 'New Student Signup - Peachstack',
-        html: `<div style="font-family:sans-serif;max-width:600px">
-          <h2 style="color:#f97316">New Student Signup</h2>
-          <table style="border-collapse:collapse;width:100%">
-            <tr style="background:#f3f4f6"><td style="padding:8px;border:1px solid #e5e7eb"><strong>University</strong></td><td style="padding:8px;border:1px solid #e5e7eb">${university || 'N/A'}</td></tr>
-            <tr><td style="padding:8px;border:1px solid #e5e7eb"><strong>Major</strong></td><td style="padding:8px;border:1px solid #e5e7eb">${major || 'N/A'}</td></tr>
-            <tr style="background:#f3f4f6"><td style="padding:8px;border:1px solid #e5e7eb"><strong>Minor</strong></td><td style="padding:8px;border:1px solid #e5e7eb">${minor || 'N/A'}</td></tr>
-            <tr><td style="padding:8px;border:1px solid #e5e7eb"><strong>Year</strong></td><td style="padding:8px;border:1px solid #e5e7eb">${year || 'N/A'}</td></tr>
-            <tr style="background:#f3f4f6"><td style="padding:8px;border:1px solid #e5e7eb"><strong>Skills</strong></td><td style="padding:8px;border:1px solid #e5e7eb">${Array.isArray(skills) ? skills.join(', ') : (skills || 'N/A')}</td></tr>
-            <tr><td style="padding:8px;border:1px solid #e5e7eb"><strong>Bio</strong></td><td style="padding:8px;border:1px solid #e5e7eb">${bio || 'N/A'}</td></tr>
-          </table>
-        </div>`
-      });
-    } catch (emailErr) { console.error('Email send error:', emailErr); };
+    await db.execute({
+      sql: "UPDATE student_profiles SET university = ?, major = ?, minor = ?, year = ?, skills = ?, bio = ?, profile_picture_url = ? WHERE user_id = ?",
+      args: [university, major, minor, year, JSON.stringify(skills), bio, profile_picture_url, req.params.id],
+    });
     res.json({ message: "Profile updated" });
   });
 
-  // Employer Profiles
-  app.get("/api/employers/:id", authenticate, (req: any, res: any) => {
-    const profile = db.prepare(`
-      SELECT u.name, u.email, e.* 
-      FROM users u 
-      JOIN employer_profiles e ON u.id = e.user_id 
-      WHERE u.id = ?
-    `).get(req.params.id) as any;
+  // ─── Employer Profiles ────────────────────────────────────────────────────────
+  app.get("/api/employers/:id", authenticate, async (req: any, res: any) => {
+    const result = await db.execute({
+      sql: "SELECT u.name, u.email, e.* FROM users u JOIN employer_profiles e ON u.id = e.user_id WHERE u.id = ?",
+      args: [req.params.id],
+    });
+    const profile = result.rows[0] as any;
     if (!profile) return res.status(404).json({ message: "Profile not found" });
     res.json(profile);
   });
 
-  // Projects
-  app.get("/api/projects", (req, res) => {
-    const projects = db.prepare("SELECT * FROM projects WHERE status = 'open'").all();
-    res.json(projects.map((p: any) => ({ ...p, skills_required: JSON.parse(p.skills_required || "[]") })));
+  // ─── Projects ─────────────────────────────────────────────────────────────────
+  app.get("/api/projects", async (req, res) => {
+    const result = await db.execute({ sql: "SELECT * FROM projects WHERE status = 'open'", args: [] });
+    res.json((result.rows as any[]).map((p) => ({ ...p, skills_required: JSON.parse(p.skills_required || "[]") })));
   });
 
-  app.post("/api/projects", authenticate, (req: any, res: any) => {
+  app.post("/api/projects", authenticate, async (req: any, res: any) => {
     if (req.user.role !== "employer" && req.user.role !== "admin") {
       return res.status(403).json({ message: "Forbidden" });
     }
     const { title, description, skills_required, deadline, compensation } = req.body;
-    const id = Math.random().toString(36).substring(2, 15);
-    db.prepare(`
-      INSERT INTO projects (id, title, description, employer_id, skills_required, deadline, compensation)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(id, title, description, req.user.id, JSON.stringify(skills_required), deadline, compensation);
-    // Send email notification
-    try {
-      await resend.emails.send({
-        from: 'onboarding@resend.dev',
-        to: 'peachstackadmin@gmail.com',
-        subject: 'New Employer Listing - Peachstack',
-        html: `<div style="font-family:sans-serif;max-width:600px">
-          <h2 style="color:#f97316">New Employer Listing</h2>
-          <table style="border-collapse:collapse;width:100%">
-            <tr style="background:#f3f4f6"><td style="padding:8px;border:1px solid #e5e7eb"><strong>Title</strong></td><td style="padding:8px;border:1px solid #e5e7eb">${title || 'N/A'}</td></tr>
-            <tr><td style="padding:8px;border:1px solid #e5e7eb"><strong>Description</strong></td><td style="padding:8px;border:1px solid #e5e7eb">${description || 'N/A'}</td></tr>
-            <tr style="background:#f3f4f6"><td style="padding:8px;border:1px solid #e5e7eb"><strong>Skills Required</strong></td><td style="padding:8px;border:1px solid #e5e7eb">${Array.isArray(skills_required) ? skills_required.join(', ') : (skills_required || 'N/A')}</td></tr>
-            <tr><td style="padding:8px;border:1px solid #e5e7eb"><strong>Deadline</strong></td><td style="padding:8px;border:1px solid #e5e7eb">${deadline || 'N/A'}</td></tr>
-            <tr style="background:#f3f4f6"><td style="padding:8px;border:1px solid #e5e7eb"><strong>Compensation</strong></td><td style="padding:8px;border:1px solid #e5e7eb">${compensation || 'N/A'}</td></tr>
-          </table>
-        </div>`
-      });
-    } catch (emailErr) { console.error('Email send error:', emailErr); }
+    const id = crypto.randomUUID();
+    await db.execute({
+      sql: "INSERT INTO projects (id, title, description, employer_id, skills_required, deadline, compensation) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      args: [id, title, description, req.user.id, JSON.stringify(skills_required), deadline, compensation],
+    });
     res.status(201).json({ id, message: "Project created" });
   });
 
-  // Applications
-  app.post("/api/applications", authenticate, (req: any, res: any) => {
+  // ─── Applications ─────────────────────────────────────────────────────────────
+  app.post("/api/applications", authenticate, async (req: any, res: any) => {
     if (req.user.role !== "student") return res.status(403).json({ message: "Only students can apply" });
     const { project_id, cover_letter } = req.body;
-    const id = Math.random().toString(36).substring(2, 15);
+    const id = crypto.randomUUID();
     try {
-      db.prepare(`
-        INSERT INTO applications (id, student_id, project_id, cover_letter)
-        VALUES (?, ?, ?, ?)
-      `).run(id, req.user.id, project_id, cover_letter);
+      await db.execute({
+        sql: "INSERT INTO applications (id, student_id, project_id, cover_letter) VALUES (?, ?, ?, ?)",
+        args: [id, req.user.id, project_id, cover_letter],
+      });
       res.status(201).json({ id, message: "Application submitted" });
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }
   });
 
-  // Contact Form
-  app.post("/api/contact", (req, res) => {
+  // ─── Contact Form ─────────────────────────────────────────────────────────────
+  app.post("/api/contact", async (req, res) => {
     const { name, email, message } = req.body;
-    db.prepare("INSERT INTO contact_submissions (name, email, message) VALUES (?, ?, ?)").run(name, email, message);
-    // Send email notification
-    try {
-      await resend.emails.send({
-        from: 'onboarding@resend.dev',
-        to: 'peachstackadmin@gmail.com',
-        subject: 'New Contact Form Message - Peachstack',
-        html: `<div style="font-family:sans-serif;max-width:600px">
-          <h2 style="color:#f97316">New Contact Form Submission</h2>
-          <table style="border-collapse:collapse;width:100%">
-            <tr style="background:#f3f4f6"><td style="padding:8px;border:1px solid #e5e7eb"><strong>Name</strong></td><td style="padding:8px;border:1px solid #e5e7eb">${name || 'N/A'}</td></tr>
-            <tr><td style="padding:8px;border:1px solid #e5e7eb"><strong>Email</strong></td><td style="padding:8px;border:1px solid #e5e7eb">${email || 'N/A'}</td></tr>
-            <tr style="background:#f3f4f6"><td style="padding:8px;border:1px solid #e5e7eb"><strong>Message</strong></td><td style="padding:8px;border:1px solid #e5e7eb">${message || 'N/A'}</td></tr>
-          </table>
-        </div>`
-      });
-    } catch (emailErr) { console.error('Email send error:', emailErr); }
+    const id = crypto.randomUUID();
+    await db.execute({ sql: "INSERT INTO contact_submissions (id, name, email, message) VALUES (?, ?, ?, ?)", args: [id, name, email, message] });
     res.status(201).json({ message: "Message sent" });
   });
 
-  // Student Onboarding
-  app.post("/api/student-onboarding", (req, res) => {
-    const { firstName, lastName, email, birthday, university, major, year, additionalAcademicDetails, whyOpportunity } = req.body;
-    try {
-      db.prepare(`
-        INSERT INTO student_onboarding (first_name, last_name, email, birthday, university, major, year, additional_details, why_opportunity)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(firstName, lastName, email, birthday, university, major, year, JSON.stringify(additionalAcademicDetails || []), whyOpportunity);
-      
-      // Fire and forget email to admin
-      sendStudentWelcomeEmail(req.body);
-      
-      res.status(201).json({ message: "Application submitted" });
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  // Test Email Endpoint
-  app.get("/api/test-email", async (req, res) => {
-    const testData = {
-      firstName: "Srikar",
-      lastName: "Jujala",
-      email: "srikarjujala@gmail.com",
-      birthday: "01/15/2003",
-      university: "Stanford University",
-      major: "Computer Science",
-      year: "1st Year",
-      additionalAcademicDetails: [],
-      whyOpportunity: "Test submission to verify email integration works."
-    };
-
-    const result = await sendStudentWelcomeEmail(testData);
-    if (result.success) {
-      res.json({ message: "Test email sent successfully", data: result.data });
-    } else {
-      res.status(500).json({ message: "Failed to send test email", error: result.error });
-    }
-  });
-
-  // ─── Admin Middleware ────────────────────────────────────────────────────────
-  const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false });
-
-  const requireAdmin = (req: any, res: any, next: any) => {
-    const token = req.cookies.token;
-    if (!token) return res.status(401).json({ message: 'Not authenticated' });
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET) as any;
-      if (decoded.role !== 'admin' && decoded.role !== 'superadmin' && !decoded.isAdmin) {
-        return res.status(403).json({ message: 'Admin access required' });
-      }
-      const user = db.prepare('SELECT token_version, is_active FROM users WHERE id = ?').get(decoded.id) as any;
-      if (!user || !user.is_active) return res.status(403).json({ message: 'Account deactivated' });
-      if (user.token_version !== undefined && decoded.tokenVersion !== undefined && decoded.tokenVersion !== user.token_version) {
-        return res.status(401).json({ message: 'Session expired' });
-      }
-      req.user = decoded;
-      next();
-    } catch (error) {
-      res.status(401).json({ message: 'Invalid token' });
-    }
-  };
-
-  const requireSuperadmin = (req: any, res: any, next: any) => {
-    requireAdmin(req, res, () => {
-      if (req.user.role !== 'superadmin' && !req.user.isSuperadmin) {
-        return res.status(403).json({ message: 'Superadmin access required' });
-      }
-      next();
-    });
-  };
-
-  const adminApiLimiter = rateLimit({ windowMs: 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false });
-  const studentApiLimiter = rateLimit({ windowMs: 60 * 1000, max: 60, standardHeaders: true, legacyHeaders: false });
-
-  // CSRF protection: verify Origin header on all state-changing requests
-  const csrfCheck = (req: any, res: any, next: any) => {
-    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
-    const origin = req.headers.origin as string | undefined;
-    const allowedOrigins = process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(',')
-      : ['http://localhost:3000', 'https://sjujala.github.io'];
-    if (origin && !allowedOrigins.includes(origin)) {
-      return res.status(403).json({ message: 'Forbidden' });
-    }
-    next();
-  };
-  app.use(csrfCheck);
-
-  // ─── Admin Auth ──────────────────────────────────────────────────────────────
-  app.post('/api/admin/login', loginLimiter, async (req, res) => {
+  // ─── Admin Auth ───────────────────────────────────────────────────────────────
+  app.post("/api/admin/login", loginLimiter, async (req, res) => {
     const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ message: 'Email and password required' });
-    const user = db.prepare("SELECT * FROM users WHERE email = ? AND (role = 'admin' OR role = 'superadmin' OR is_superadmin = 1)").get(email) as any;
+    if (!email || !password) return res.status(400).json({ message: "Email and password required" });
+    const result = await db.execute({ sql: "SELECT * FROM users WHERE email = ? AND role IN ('admin', 'superadmin')", args: [email] });
+    const user = result.rows[0] as any;
     if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: "Invalid credentials" });
     }
-    if (!user.is_active) return res.status(403).json({ message: 'Account deactivated' });
-    db.prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?').run(user.id);
+    if (!user.is_active) return res.status(403).json({ message: "Account deactivated" });
+    await db.execute({ sql: "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?", args: [user.id] });
     const tokenVersion = user.token_version || 0;
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role, name: user.name, isAdmin: true, isSuperadmin: !!user.is_superadmin, tokenVersion }, JWT_SECRET, { expiresIn: '24h' });
-    res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'none', maxAge: 24 * 60 * 60 * 1000 });
-    res.json({ user: { id: user.id, email: user.email, role: user.role, name: user.name, isSuperadmin: !!user.is_superadmin } });
+    const isSuperadmin = user.role === "superadmin";
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role, name: user.name, isAdmin: true, isSuperadmin, tokenVersion },
+      JWT_SECRET,
+      { expiresIn: "24h" }
+    );
+    res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "none", maxAge: 24 * 60 * 60 * 1000 });
+    res.json({ user: { id: user.id, email: user.email, role: user.role, name: user.name, isSuperadmin } });
   });
 
-  app.post('/api/admin/logout', adminApiLimiter, requireAdmin, (req, res) => {
-    res.clearCookie('token', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'none' });
-    res.json({ message: 'Logged out' });
+  app.post("/api/admin/logout", adminApiLimiter, requireAdmin, (req, res) => {
+    res.clearCookie("token", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "none" });
+    res.json({ message: "Logged out" });
   });
 
-  // ─── Dashboard Metrics ───────────────────────────────────────────────────────
-  app.get('/api/admin/metrics', adminApiLimiter, requireAdmin, (req, res) => {
-    const totalInterns = db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'student' AND is_active = 1").get() as any;
-    const totalApplications = db.prepare("SELECT COUNT(*) as count FROM applications").get() as any;
-    const pendingApplications = db.prepare("SELECT COUNT(*) as count FROM applications WHERE status = 'pending'").get() as any;
-    const acceptedApplications = db.prepare("SELECT COUNT(*) as count FROM applications WHERE status = 'accepted'").get() as any;
-    const rejectedApplications = db.prepare("SELECT COUNT(*) as count FROM applications WHERE status = 'rejected'").get() as any;
-    const totalProjects = db.prepare("SELECT COUNT(*) as count FROM projects").get() as any;
-    const openProjects = db.prepare("SELECT COUNT(*) as count FROM projects WHERE status = 'open'").get() as any;
-    const unreadContacts = db.prepare("SELECT COUNT(*) as count FROM contact_submissions WHERE is_read = 0").get() as any;
-    const totalTasks = db.prepare("SELECT COUNT(*) as count FROM tasks WHERE status != 'completed'").get() as any;
-    const completedTasks = db.prepare("SELECT COUNT(*) as count FROM tasks WHERE status = 'completed'").get() as any;
-    const recentApplications = db.prepare("SELECT u.name, u.email, a.status, a.applied_at as created_at FROM applications a JOIN users u ON a.student_id = u.id ORDER BY a.applied_at DESC LIMIT 5").all();
-    res.json({ totalInterns: totalInterns.count, totalApplications: totalApplications.count, pendingApplications: pendingApplications.count, acceptedApplications: acceptedApplications.count, rejectedApplications: rejectedApplications.count, totalProjects: totalProjects.count, openProjects: openProjects.count, unreadContacts: unreadContacts.count, totalTasks: totalTasks.count, completedTasks: completedTasks.count, recentApplications });
+  // ─── Admin Dashboard ──────────────────────────────────────────────────────────
+  app.get("/api/admin/dashboard", adminApiLimiter, requireAdmin, async (req, res) => {
+    const activeInternsResult = await db.execute({ sql: "SELECT COUNT(*) as count FROM users WHERE role = 'student' AND is_active = 1", args: [] });
+    const activeInterns = (activeInternsResult.rows[0] as any)?.count || 0;
+
+    const taskStatsResult = await db.execute({ sql: "SELECT COUNT(*) as total, SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END) as completed FROM tasks", args: [] });
+    const taskStats = taskStatsResult.rows[0] as any;
+    const completionRate = taskStats.total > 0 ? Math.round((Number(taskStats.completed) / Number(taskStats.total)) * 100) : 0;
+
+    const pendingTasksResult = await db.execute({ sql: "SELECT COUNT(*) as count FROM tasks WHERE status = 'in_review'", args: [] });
+    const pendingTasks = (pendingTasksResult.rows[0] as any)?.count || 0;
+
+    const recentActivityResult = await db.execute({
+      sql: "SELECT tal.*, u.name as actor_name, t.title as task_title FROM task_activity_log tal JOIN users u ON tal.user_id = u.id JOIN tasks t ON tal.task_id = t.id ORDER BY tal.created_at DESC LIMIT 10",
+      args: [],
+    });
+    const recentActivity = recentActivityResult.rows as any[];
+
+    res.json({ activeInterns, completionRate, pendingTasks, recentActivity });
   });
 
-  // ─── Admin Users (Team Management) ──────────────────────────────────────────
-  app.get('/api/admin/users', adminApiLimiter, requireAdmin, (req, res) => {
-    const admins = db.prepare("SELECT id, email, name, role, is_superadmin, is_active, created_at, last_login FROM users WHERE role = 'admin' OR role = 'superadmin' OR is_superadmin = 1").all();
-    res.json(admins);
+  // ─── Admin Metrics (legacy) ───────────────────────────────────────────────────
+  app.get("/api/admin/metrics", adminApiLimiter, requireAdmin, async (req, res) => {
+    const totalInternsResult = await db.execute({ sql: "SELECT COUNT(*) as count FROM users WHERE role = 'student' AND is_active = 1", args: [] });
+    const totalProjectsResult = await db.execute({ sql: "SELECT COUNT(*) as count FROM projects", args: [] });
+    const openProjectsResult = await db.execute({ sql: "SELECT COUNT(*) as count FROM projects WHERE status = 'open'", args: [] });
+    const totalTasksResult = await db.execute({ sql: "SELECT COUNT(*) as count FROM tasks WHERE status != 'completed'", args: [] });
+    const completedTasksResult = await db.execute({ sql: "SELECT COUNT(*) as count FROM tasks WHERE status = 'completed'", args: [] });
+    res.json({
+      totalInterns: (totalInternsResult.rows[0] as any)?.count || 0,
+      totalProjects: (totalProjectsResult.rows[0] as any)?.count || 0,
+      openProjects: (openProjectsResult.rows[0] as any)?.count || 0,
+      totalTasks: (totalTasksResult.rows[0] as any)?.count || 0,
+      completedTasks: (completedTasksResult.rows[0] as any)?.count || 0,
+    });
   });
 
-  app.post('/api/admin/users', adminApiLimiter, requireSuperadmin, async (req, res) => {
-    const { email, name, password, isSuperadmin } = req.body;
-    if (!email || !name || !password) return res.status(400).json({ message: 'Email, name, and password required' });
+  // ─── Admin Calendar ───────────────────────────────────────────────────────────
+  app.get("/api/admin/calendar", adminApiLimiter, requireAdmin, async (req, res) => {
+    const result = await db.execute({ sql: "SELECT * FROM calendar_events ORDER BY event_date ASC", args: [] });
+    res.json(result.rows as any[]);
+  });
+
+  app.post("/api/admin/calendar", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
+    const { title, description, event_date, event_time, target_role, target_user_id } = req.body;
+    if (!title || !event_date) return res.status(400).json({ message: "Title and event_date required" });
+    const id = crypto.randomUUID();
+    await db.execute({
+      sql: "INSERT INTO calendar_events (id, title, description, event_date, event_time, target_role, target_user_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      args: [id, title, description || null, event_date, event_time || null, target_role || "all", target_user_id || null, req.user.id],
+    });
+    res.status(201).json({ id });
+  });
+
+  app.delete("/api/admin/calendar/:id", adminApiLimiter, requireAdmin, async (req, res) => {
+    await db.execute({ sql: "DELETE FROM calendar_events WHERE id = ?", args: [req.params.id] });
+    res.json({ message: "Deleted" });
+  });
+
+  // ─── Admin Team ───────────────────────────────────────────────────────────────
+  app.get("/api/admin/team", adminApiLimiter, requireAdmin, async (req, res) => {
+    const result = await db.execute({ sql: "SELECT id, email, name, role, is_active, created_at, last_login FROM users WHERE role IN ('admin', 'superadmin')", args: [] });
+    res.json(result.rows as any[]);
+  });
+
+  app.post("/api/admin/team", adminApiLimiter, requireSuperadmin, async (req: any, res: any) => {
+    const { email, name, password } = req.body;
+    if (!email || !name || !password) return res.status(400).json({ message: "Email, name, and password required" });
     const id = crypto.randomUUID();
     const hashed = await bcrypt.hash(password, 12);
     try {
-      db.prepare("INSERT INTO users (id, email, password, name, role, is_superadmin, is_active) VALUES (?, ?, ?, ?, 'admin', ?, 1)").run(id, email, hashed, name, isSuperadmin ? 1 : 0);
-      const adminId = (req as any).user.id;
-      db.prepare("INSERT INTO admin_audit_log (id, admin_id, action, target_type, target_id, details, ip_address) VALUES (?, ?, 'created_admin', 'user', ?, ?, ?)").run(crypto.randomUUID(), adminId, id, JSON.stringify({ email, name }), req.ip);
-      res.status(201).json({ id, message: 'Admin created' });
+      await db.execute({ sql: "INSERT INTO users (id, email, password, name, role, is_active) VALUES (?, ?, ?, ?, 'admin', 1)", args: [id, email, hashed, name] });
+      res.status(201).json({ id, message: "Admin created" });
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }
   });
 
-  app.patch('/api/admin/users/:id', adminApiLimiter, requireAdmin, async (req, res) => {
-    const { name, email, is_active, is_superadmin, password } = req.body;
-    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id) as any;
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    if (name) db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name, req.params.id);
-    if (email) db.prepare('UPDATE users SET email = ? WHERE id = ?').run(email, req.params.id);
-    if (is_active !== undefined) {
-      db.prepare('UPDATE users SET is_active = ?, token_version = token_version + 1 WHERE id = ?').run(is_active ? 1 : 0, req.params.id);
+  app.delete("/api/admin/team/:id", adminApiLimiter, requireSuperadmin, async (req, res) => {
+    await db.execute({ sql: "UPDATE users SET is_active = 0, token_version = token_version + 1 WHERE id = ?", args: [req.params.id] });
+    res.json({ message: "Account deactivated" });
+  });
+
+  // ─── Admin Users (legacy) ─────────────────────────────────────────────────────
+  app.get("/api/admin/users", adminApiLimiter, requireAdmin, async (req, res) => {
+    const result = await db.execute({ sql: "SELECT id, email, name, role, is_active, created_at, last_login FROM users WHERE role IN ('admin', 'superadmin')", args: [] });
+    res.json(result.rows as any[]);
+  });
+
+  app.post("/api/admin/users", adminApiLimiter, requireSuperadmin, async (req: any, res: any) => {
+    const { email, name, password } = req.body;
+    if (!email || !name || !password) return res.status(400).json({ message: "Email, name, and password required" });
+    const id = crypto.randomUUID();
+    const hashed = await bcrypt.hash(password, 12);
+    try {
+      await db.execute({ sql: "INSERT INTO users (id, email, password, name, role, is_active) VALUES (?, ?, ?, ?, 'admin', 1)", args: [id, email, hashed, name] });
+      await db.execute({
+        sql: "INSERT INTO admin_audit_log (id, admin_id, action, target_type, target_id, details, ip_address) VALUES (?, ?, 'created_admin', 'user', ?, ?, ?)",
+        args: [crypto.randomUUID(), req.user.id, id, JSON.stringify({ email, name }), req.ip],
+      });
+      res.status(201).json({ id, message: "Admin created" });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
     }
-    if (is_superadmin !== undefined && (req as any).user.isSuperadmin) db.prepare('UPDATE users SET is_superadmin = ? WHERE id = ?').run(is_superadmin ? 1 : 0, req.params.id);
-    if (password) { const hashed = await bcrypt.hash(password, 12); db.prepare('UPDATE users SET password = ?, token_version = token_version + 1 WHERE id = ?').run(hashed, req.params.id); }
-    res.json({ message: 'User updated' });
   });
 
-  app.delete('/api/admin/users/:id', adminApiLimiter, requireSuperadmin, (req, res) => {
-    db.prepare('UPDATE users SET is_active = 0, token_version = token_version + 1 WHERE id = ?').run(req.params.id);
-    res.json({ message: 'User deactivated' });
+  app.patch("/api/admin/users/:id", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
+    const { name, email, is_active, password } = req.body;
+    const userResult = await db.execute({ sql: "SELECT * FROM users WHERE id = ?", args: [req.params.id] });
+    const user = userResult.rows[0] as any;
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (name) await db.execute({ sql: "UPDATE users SET name = ? WHERE id = ?", args: [name, req.params.id] });
+    if (email) await db.execute({ sql: "UPDATE users SET email = ? WHERE id = ?", args: [email, req.params.id] });
+    if (is_active !== undefined) {
+      await db.execute({ sql: "UPDATE users SET is_active = ?, token_version = token_version + 1 WHERE id = ?", args: [is_active ? 1 : 0, req.params.id] });
+    }
+    if (password) {
+      const hashed = await bcrypt.hash(password, 12);
+      await db.execute({ sql: "UPDATE users SET password = ?, token_version = token_version + 1 WHERE id = ?", args: [hashed, req.params.id] });
+    }
+    res.json({ message: "User updated" });
   });
 
-  // ─── Intern Management ───────────────────────────────────────────────────────
-  app.get('/api/admin/interns', adminApiLimiter, requireAdmin, (req, res) => {
-    const { search, status, page = '1', limit = '20' } = req.query as any;
-    let query = `SELECT u.id, u.email, u.name, u.created_at, u.last_login, u.is_active, sp.university, sp.major, sp.year FROM users u LEFT JOIN student_profiles sp ON u.id = sp.user_id WHERE u.role = 'student'`;
-    const params: any[] = [];
-    if (search) { query += ` AND (u.name LIKE ? OR u.email LIKE ?)`; params.push(`%${search}%`, `%${search}%`); }
-    if (status === 'active') query += ` AND u.is_active = 1`;
-    if (status === 'inactive') query += ` AND u.is_active = 0`;
+  app.delete("/api/admin/users/:id", adminApiLimiter, requireSuperadmin, async (req, res) => {
+    await db.execute({ sql: "UPDATE users SET is_active = 0, token_version = token_version + 1 WHERE id = ?", args: [req.params.id] });
+    res.json({ message: "User deactivated" });
+  });
+
+  // ─── Intern Management ────────────────────────────────────────────────────────
+  app.post("/api/admin/interns/create", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
+    const { name, email, internRole, tempPassword } = req.body;
+    if (!name || !email || !tempPassword) return res.status(400).json({ message: "Name, email, and tempPassword required" });
+    const id = crypto.randomUUID();
+    const hashed = await bcrypt.hash(tempPassword, 12);
+    try {
+      await db.execute({ sql: "INSERT INTO users (id, email, password, name, role, is_active) VALUES (?, ?, ?, ?, 'student', 1)", args: [id, email, hashed, name] });
+      await db.execute({ sql: "INSERT INTO student_profiles (user_id, intern_role) VALUES (?, ?)", args: [id, internRole || null] });
+      await db.execute({
+        sql: "INSERT INTO notifications (id, user_id, message, type) VALUES (?, ?, ?, 'account_created')",
+        args: [crypto.randomUUID(), id, `Welcome to Peachstack, ${name}! Your account has been created.`],
+      });
+      res.status(201).json({ id, message: "Intern created" });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/admin/interns", adminApiLimiter, requireAdmin, async (req, res) => {
+    const { search, status, page = "1", limit = "20" } = req.query as any;
+    let sql = "SELECT u.id, u.email, u.name, u.created_at, u.last_login, u.is_active, sp.university, sp.major, sp.year, sp.intern_role FROM users u LEFT JOIN student_profiles sp ON u.id = sp.user_id WHERE u.role = 'student'";
+    const args: any[] = [];
+    if (search) { sql += " AND (u.name LIKE ? OR u.email LIKE ?)"; args.push(`%${search}%`, `%${search}%`); }
+    if (status === "active") sql += " AND u.is_active = 1";
+    if (status === "inactive") sql += " AND u.is_active = 0";
+    const countSql = sql.replace("SELECT u.id, u.email, u.name, u.created_at, u.last_login, u.is_active, sp.university, sp.major, sp.year, sp.intern_role", "SELECT COUNT(*) as count");
+    const countResult = await db.execute({ sql: countSql, args });
+    const total = (countResult.rows[0] as any)?.count || 0;
     const offset = (parseInt(page) - 1) * parseInt(limit);
-    const countQuery = query.replace('SELECT u.id, u.email, u.name, u.created_at, u.last_login, u.is_active, sp.university, sp.major, sp.year', 'SELECT COUNT(*) as count');
-    const total = (db.prepare(countQuery).get(...params) as any)?.count || 0;
-    query += ` ORDER BY u.created_at DESC LIMIT ? OFFSET ?`;
-    params.push(parseInt(limit), offset);
-    const interns = db.prepare(query).all(...params);
-    res.json({ data: interns, total, page: parseInt(page), limit: parseInt(limit) });
+    sql += " ORDER BY u.created_at DESC LIMIT ? OFFSET ?";
+    const pagedArgs = [...args, parseInt(limit), offset];
+    const result = await db.execute({ sql, args: pagedArgs });
+    res.json({ data: result.rows as any[], total, page: parseInt(page), limit: parseInt(limit) });
   });
 
-  app.get('/api/admin/interns/:id', adminApiLimiter, requireAdmin, (req, res) => {
-    const intern = db.prepare(`SELECT u.*, sp.* FROM users u LEFT JOIN student_profiles sp ON u.id = sp.user_id WHERE u.id = ? AND u.role = 'student'`).get(req.params.id) as any;
-    if (!intern) return res.status(404).json({ message: 'Not found' });
-    intern.skills = JSON.parse(intern.skills || '[]');
-    intern.badges_earned = JSON.parse(intern.badges_earned || '[]');
-    const tasks = db.prepare('SELECT * FROM tasks WHERE assigned_to = ? ORDER BY created_at DESC').all(req.params.id);
-    const applications = db.prepare('SELECT a.*, p.title as project_title FROM applications a LEFT JOIN projects p ON a.project_id = p.id WHERE a.student_id = ?').all(req.params.id);
-    res.json({ ...intern, tasks, applications });
+  app.get("/api/admin/interns/:id", adminApiLimiter, requireAdmin, async (req, res) => {
+    const internResult = await db.execute({
+      sql: "SELECT u.*, sp.* FROM users u LEFT JOIN student_profiles sp ON u.id = sp.user_id WHERE u.id = ? AND u.role = 'student'",
+      args: [req.params.id],
+    });
+    const intern = internResult.rows[0] as any;
+    if (!intern) return res.status(404).json({ message: "Not found" });
+    intern.skills = JSON.parse(intern.skills || "[]");
+    intern.badges_earned = JSON.parse(intern.badges_earned || "[]");
+    const tasksResult = await db.execute({ sql: "SELECT * FROM tasks WHERE assigned_to = ? ORDER BY created_at DESC", args: [req.params.id] });
+    res.json({ ...intern, tasks: tasksResult.rows as any[] });
   });
 
-  app.patch('/api/admin/interns/:id', adminApiLimiter, requireAdmin, (req, res) => {
+  app.patch("/api/admin/interns/:id", adminApiLimiter, requireAdmin, async (req, res) => {
     const { is_active } = req.body;
-    if (is_active !== undefined) db.prepare('UPDATE users SET is_active = ? WHERE id = ?').run(is_active ? 1 : 0, req.params.id);
-    res.json({ message: 'Updated' });
+    if (is_active !== undefined) {
+      await db.execute({ sql: "UPDATE users SET is_active = ? WHERE id = ?", args: [is_active ? 1 : 0, req.params.id] });
+    }
+    res.json({ message: "Updated" });
   });
 
-  // ─── Task Management ─────────────────────────────────────────────────────────
-  app.get('/api/admin/tasks', adminApiLimiter, requireAdmin, (req, res) => {
-    const { status, assignee, priority, page = '1', limit = '50' } = req.query as any;
-    let query = `SELECT t.*, u.name as assignee_name, c.name as creator_name FROM tasks t LEFT JOIN users u ON t.assigned_to = u.id LEFT JOIN users c ON t.created_by = c.id WHERE 1=1`;
-    const params: any[] = [];
-    if (status) { query += ' AND t.status = ?'; params.push(status); }
-    if (assignee) { query += ' AND t.assigned_to = ?'; params.push(assignee); }
-    if (priority) { query += ' AND t.priority = ?'; params.push(priority); }
+  app.post("/api/admin/interns/:id/notes", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
+    const { note } = req.body;
+    if (!note) return res.status(400).json({ message: "Note required" });
+    const profileResult = await db.execute({ sql: "SELECT notes FROM student_profiles WHERE user_id = ?", args: [req.params.id] });
+    const profile = profileResult.rows[0] as any;
+    if (!profile) return res.status(404).json({ message: "Profile not found" });
+    const existingNotes = JSON.parse(profile.notes || "[]");
+    existingNotes.push({ note, created_at: new Date().toISOString(), created_by: req.user.id });
+    await db.execute({ sql: "UPDATE student_profiles SET notes = ? WHERE user_id = ?", args: [JSON.stringify(existingNotes), req.params.id] });
+    res.json({ message: "Note added" });
+  });
+
+  // ─── Task Management ──────────────────────────────────────────────────────────
+  app.get("/api/admin/tasks", adminApiLimiter, requireAdmin, async (req, res) => {
+    const { status, assignee, priority, page = "1", limit = "50" } = req.query as any;
+    let sql = "SELECT t.*, u.name as assignee_name, c.name as creator_name FROM tasks t LEFT JOIN users u ON t.assigned_to = u.id LEFT JOIN users c ON t.created_by = c.id WHERE 1=1";
+    const args: any[] = [];
+    if (status) { sql += " AND t.status = ?"; args.push(status); }
+    if (assignee) { sql += " AND t.assigned_to = ?"; args.push(assignee); }
+    if (priority) { sql += " AND t.priority = ?"; args.push(priority); }
+    const countResult = await db.execute({ sql: sql.replace("SELECT t.*, u.name as assignee_name, c.name as creator_name", "SELECT COUNT(*) as count"), args });
+    const total = (countResult.rows[0] as any)?.count || 0;
     const offset = (parseInt(page) - 1) * parseInt(limit);
-    const total = (db.prepare(query.replace('SELECT t.*, u.name as assignee_name, c.name as creator_name', 'SELECT COUNT(*) as count')).get(...params) as any)?.count || 0;
-    query += ' ORDER BY t.created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), offset);
-    const tasks = db.prepare(query).all(...params).map((t: any) => ({ ...t, tags: JSON.parse(t.tags || '[]') }));
+    sql += " ORDER BY t.created_at DESC LIMIT ? OFFSET ?";
+    const result = await db.execute({ sql, args: [...args, parseInt(limit), offset] });
+    const tasks = (result.rows as any[]).map((t) => ({ ...t, tags: JSON.parse(t.tags || "[]") }));
     res.json({ data: tasks, total, page: parseInt(page), limit: parseInt(limit) });
   });
 
-  app.post('/api/admin/tasks', adminApiLimiter, requireAdmin, (req, res) => {
-    const { title, description, assigned_to, project_id, priority, due_date, estimated_hours, tags } = req.body;
-    if (!title || !description) return res.status(400).json({ message: 'Title and description required' });
+  app.post("/api/admin/tasks", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
+    const { title, description, assigned_to, assigned_role, project_id, priority, due_date, estimated_hours, tags, points, task_type } = req.body;
+    if (!title || !description) return res.status(400).json({ message: "Title and description required" });
     const id = crypto.randomUUID();
-    const createdBy = (req as any).user.id;
-    db.prepare(`INSERT INTO tasks (id, title, description, assigned_to, project_id, created_by, priority, due_date, estimated_hours, tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(id, title, description, assigned_to || null, project_id || null, createdBy, priority || 'medium', due_date || null, estimated_hours || null, JSON.stringify(tags || []));
-    db.prepare(`INSERT INTO task_activity_log (id, task_id, user_id, action, new_value) VALUES (?, ?, ?, 'created', ?)`).run(crypto.randomUUID(), id, createdBy, title);
-    res.status(201).json({ id, message: 'Task created' });
+    const createdBy = req.user.id;
+    await db.execute({
+      sql: "INSERT INTO tasks (id, title, description, assigned_to, assigned_role, project_id, created_by, priority, due_date, estimated_hours, tags, points, task_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      args: [id, title, description, assigned_to || null, assigned_role || null, project_id || null, createdBy, priority || "medium", due_date || null, estimated_hours || null, JSON.stringify(tags || []), points || 10, task_type || "regular"],
+    });
+    await db.execute({
+      sql: "INSERT INTO task_activity_log (id, task_id, user_id, action, new_value) VALUES (?, ?, ?, 'created', ?)",
+      args: [crypto.randomUUID(), id, createdBy, title],
+    });
+    if (assigned_to) {
+      await db.execute({
+        sql: "INSERT INTO notifications (id, user_id, message, type) VALUES (?, ?, ?, 'task_assigned')",
+        args: [crypto.randomUUID(), assigned_to, `You have been assigned a new task: ${title}`],
+      });
+    }
+    res.status(201).json({ id, message: "Task created" });
   });
 
-  app.get('/api/admin/tasks/:id', adminApiLimiter, requireAdmin, (req, res) => {
-    const task = db.prepare(`SELECT t.*, u.name as assignee_name FROM tasks t LEFT JOIN users u ON t.assigned_to = u.id WHERE t.id = ?`).get(req.params.id) as any;
-    if (!task) return res.status(404).json({ message: 'Not found' });
-    task.tags = JSON.parse(task.tags || '[]');
-    const comments = db.prepare(`SELECT tc.*, u.name as author_name FROM task_comments tc JOIN users u ON tc.user_id = u.id WHERE tc.task_id = ? ORDER BY tc.created_at ASC`).all(req.params.id);
-    const activity = db.prepare(`SELECT tal.*, u.name as actor_name FROM task_activity_log tal JOIN users u ON tal.user_id = u.id WHERE tal.task_id = ? ORDER BY tal.created_at DESC LIMIT 20`).all(req.params.id);
-    res.json({ ...task, comments, activity });
+  app.get("/api/admin/tasks/:id", adminApiLimiter, requireAdmin, async (req, res) => {
+    const taskResult = await db.execute({
+      sql: "SELECT t.*, u.name as assignee_name FROM tasks t LEFT JOIN users u ON t.assigned_to = u.id WHERE t.id = ?",
+      args: [req.params.id],
+    });
+    const task = taskResult.rows[0] as any;
+    if (!task) return res.status(404).json({ message: "Not found" });
+    task.tags = JSON.parse(task.tags || "[]");
+    const commentsResult = await db.execute({
+      sql: "SELECT tc.*, u.name as author_name FROM task_comments tc JOIN users u ON tc.user_id = u.id WHERE tc.task_id = ? ORDER BY tc.created_at ASC",
+      args: [req.params.id],
+    });
+    const activityResult = await db.execute({
+      sql: "SELECT tal.*, u.name as actor_name FROM task_activity_log tal JOIN users u ON tal.user_id = u.id WHERE tal.task_id = ? ORDER BY tal.created_at DESC LIMIT 20",
+      args: [req.params.id],
+    });
+    res.json({ ...task, comments: commentsResult.rows as any[], activity: activityResult.rows as any[] });
   });
 
-  app.patch('/api/admin/tasks/:id', adminApiLimiter, requireAdmin, (req, res) => {
-    const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id) as any;
-    if (!task) return res.status(404).json({ message: 'Not found' });
+  app.patch("/api/admin/tasks/:id", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
+    const taskResult = await db.execute({ sql: "SELECT * FROM tasks WHERE id = ?", args: [req.params.id] });
+    const task = taskResult.rows[0] as any;
+    if (!task) return res.status(404).json({ message: "Not found" });
     const { title, description, status, priority, assigned_to, due_date, estimated_hours, actual_hours, tags } = req.body;
-    const userId = (req as any).user.id;
+    const userId = req.user.id;
     if (status && status !== task.status) {
-      db.prepare(`INSERT INTO task_activity_log (id, task_id, user_id, action, old_value, new_value) VALUES (?, ?, ?, 'status_changed', ?, ?)`).run(crypto.randomUUID(), req.params.id, userId, task.status, status);
+      await db.execute({
+        sql: "INSERT INTO task_activity_log (id, task_id, user_id, action, old_value, new_value) VALUES (?, ?, ?, 'status_changed', ?, ?)",
+        args: [crypto.randomUUID(), req.params.id, userId, task.status, status],
+      });
     }
     if (assigned_to !== undefined && assigned_to !== task.assigned_to) {
-      db.prepare(`INSERT INTO task_activity_log (id, task_id, user_id, action, old_value, new_value) VALUES (?, ?, ?, 'assigned', ?, ?)`).run(crypto.randomUUID(), req.params.id, userId, task.assigned_to, assigned_to);
+      await db.execute({
+        sql: "INSERT INTO task_activity_log (id, task_id, user_id, action, old_value, new_value) VALUES (?, ?, ?, 'assigned', ?, ?)",
+        args: [crypto.randomUUID(), req.params.id, userId, task.assigned_to, assigned_to],
+      });
     }
-    db.prepare(`UPDATE tasks SET title = COALESCE(?, title), description = COALESCE(?, description), status = COALESCE(?, status), priority = COALESCE(?, priority), assigned_to = COALESCE(?, assigned_to), due_date = COALESCE(?, due_date), estimated_hours = COALESCE(?, estimated_hours), actual_hours = COALESCE(?, actual_hours), tags = COALESCE(?, tags), updated_at = CURRENT_TIMESTAMP, completed_at = CASE WHEN ? = 'completed' THEN CURRENT_TIMESTAMP ELSE completed_at END WHERE id = ?`).run(title || null, description || null, status || null, priority || null, assigned_to !== undefined ? assigned_to : null, due_date !== undefined ? due_date : null, estimated_hours || null, actual_hours || null, tags ? JSON.stringify(tags) : null, status || null, req.params.id);
-    res.json({ message: 'Updated' });
+    await db.execute({
+      sql: `UPDATE tasks SET
+        title = COALESCE(?, title),
+        description = COALESCE(?, description),
+        status = COALESCE(?, status),
+        priority = COALESCE(?, priority),
+        assigned_to = COALESCE(?, assigned_to),
+        due_date = COALESCE(?, due_date),
+        estimated_hours = COALESCE(?, estimated_hours),
+        actual_hours = COALESCE(?, actual_hours),
+        tags = COALESCE(?, tags),
+        updated_at = CURRENT_TIMESTAMP,
+        completed_at = CASE WHEN ? = 'completed' THEN CURRENT_TIMESTAMP ELSE completed_at END
+        WHERE id = ?`,
+      args: [
+        title || null, description || null, status || null, priority || null,
+        assigned_to !== undefined ? assigned_to : null,
+        due_date !== undefined ? due_date : null,
+        estimated_hours || null, actual_hours || null,
+        tags ? JSON.stringify(tags) : null,
+        status || null, req.params.id,
+      ],
+    });
+    res.json({ message: "Updated" });
   });
 
-  app.delete('/api/admin/tasks/:id', adminApiLimiter, requireAdmin, (req, res) => {
-    db.prepare('DELETE FROM tasks WHERE id = ?').run(req.params.id);
-    res.json({ message: 'Deleted' });
+  app.patch("/api/admin/tasks/:id/review", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
+    const { feedback, score } = req.body;
+    const taskResult = await db.execute({ sql: "SELECT * FROM tasks WHERE id = ?", args: [req.params.id] });
+    const task = taskResult.rows[0] as any;
+    if (!task) return res.status(404).json({ message: "Not found" });
+    await db.execute({
+      sql: "UPDATE tasks SET admin_feedback = ?, admin_score = ?, status = 'completed', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      args: [feedback || null, score || null, req.params.id],
+    });
+    if (task.assigned_to && score) {
+      await db.execute({ sql: "UPDATE student_profiles SET points_total = points_total + ? WHERE user_id = ?", args: [score, task.assigned_to] });
+      await db.execute({
+        sql: "INSERT INTO notifications (id, user_id, message, type) VALUES (?, ?, ?, 'task_reviewed')",
+        args: [crypto.randomUUID(), task.assigned_to, `Your task "${task.title}" has been reviewed. Score: ${score}`],
+      });
+    }
+    res.json({ message: "Task reviewed" });
   });
 
-  app.post('/api/admin/tasks/:id/comments', adminApiLimiter, requireAdmin, (req, res) => {
+  app.delete("/api/admin/tasks/:id", adminApiLimiter, requireAdmin, async (req, res) => {
+    await db.execute({ sql: "DELETE FROM tasks WHERE id = ?", args: [req.params.id] });
+    res.json({ message: "Deleted" });
+  });
+
+  app.post("/api/admin/tasks/:id/comments", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
     const { content } = req.body;
-    if (!content) return res.status(400).json({ message: 'Content required' });
+    if (!content) return res.status(400).json({ message: "Content required" });
     const id = crypto.randomUUID();
-    const userId = (req as any).user.id;
-    db.prepare('INSERT INTO task_comments (id, task_id, user_id, content) VALUES (?, ?, ?, ?)').run(id, req.params.id, userId, content);
-    db.prepare(`INSERT INTO task_activity_log (id, task_id, user_id, action) VALUES (?, ?, ?, 'commented')`).run(crypto.randomUUID(), req.params.id, userId);
+    const userId = req.user.id;
+    await db.execute({ sql: "INSERT INTO task_comments (id, task_id, user_id, content) VALUES (?, ?, ?, ?)", args: [id, req.params.id, userId, content] });
+    await db.execute({
+      sql: "INSERT INTO task_activity_log (id, task_id, user_id, action) VALUES (?, ?, ?, 'commented')",
+      args: [crypto.randomUUID(), req.params.id, userId],
+    });
     res.status(201).json({ id });
   });
 
-  // Intern task view (student-facing)
-  app.get('/api/tasks/mine', studentApiLimiter, authenticate, (req: any, res: any) => {
-    if (req.user.role !== 'student') return res.status(403).json({ message: 'Students only' });
-    const tasks = db.prepare(`SELECT t.*, u.name as creator_name FROM tasks t LEFT JOIN users u ON t.created_by = u.id WHERE t.assigned_to = ? ORDER BY t.created_at DESC`).all(req.user.id).map((t: any) => ({ ...t, tags: JSON.parse(t.tags || '[]') }));
-    res.json(tasks);
+  // ─── Admin Communications ──────────────────────────────────────────────────────
+  app.get("/api/admin/contacts", adminApiLimiter, requireAdmin, async (req, res) => {
+    const result = await db.execute({ sql: "SELECT * FROM contact_submissions ORDER BY submitted_at DESC", args: [] });
+    res.json(result.rows as any[]);
   });
 
-  app.patch('/api/tasks/:id', studentApiLimiter, authenticate, (req: any, res: any) => {
-    const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id) as any;
-    if (!task) return res.status(404).json({ message: 'Not found' });
-    if (req.user.role === 'student') {
-      if (task.assigned_to !== req.user.id) return res.status(403).json({ message: 'Not authorized' });
+  app.patch("/api/admin/contacts/:id", adminApiLimiter, requireAdmin, async (req, res) => {
+    const { status } = req.body;
+    if (status) await db.execute({ sql: "UPDATE contact_submissions SET status = ? WHERE id = ?", args: [status, req.params.id] });
+    res.json({ message: "Updated" });
+  });
+
+  // ─── Admin Analytics ───────────────────────────────────────────────────────────
+  app.get("/api/admin/analytics", adminApiLimiter, requireAdmin, async (req, res) => {
+    const tasksByStatusResult = await db.execute({ sql: "SELECT status, COUNT(*) as count FROM tasks GROUP BY status", args: [] });
+    const tasksByPriorityResult = await db.execute({ sql: "SELECT priority, COUNT(*) as count FROM tasks GROUP BY priority", args: [] });
+    const internActivityResult = await db.execute({
+      sql: "SELECT u.name, COUNT(t.id) as task_count, SUM(CASE WHEN t.status='completed' THEN 1 ELSE 0 END) as completed FROM users u LEFT JOIN tasks t ON t.assigned_to = u.id WHERE u.role = 'student' GROUP BY u.id ORDER BY task_count DESC LIMIT 10",
+      args: [],
+    });
+    const overdueResult = await db.execute({ sql: "SELECT COUNT(*) as count FROM tasks WHERE due_date < date('now') AND status NOT IN ('completed','blocked')", args: [] });
+    res.json({
+      tasksByStatus: tasksByStatusResult.rows as any[],
+      tasksByPriority: tasksByPriorityResult.rows as any[],
+      internActivity: internActivityResult.rows as any[],
+      overdueTasks: (overdueResult.rows[0] as any)?.count || 0,
+    });
+  });
+
+  // ─── Admin Projects ────────────────────────────────────────────────────────────
+  app.get("/api/admin/projects", adminApiLimiter, requireAdmin, async (req, res) => {
+    const result = await db.execute({ sql: "SELECT * FROM projects ORDER BY created_at DESC", args: [] });
+    res.json((result.rows as any[]).map((p) => ({ ...p, skills_required: JSON.parse(p.skills_required || "[]") })));
+  });
+
+  // ─── Legacy student task routes ────────────────────────────────────────────────
+  app.get("/api/tasks/mine", studentApiLimiter, authenticate, async (req: any, res: any) => {
+    if (req.user.role !== "student") return res.status(403).json({ message: "Students only" });
+    const result = await db.execute({
+      sql: "SELECT t.*, u.name as creator_name FROM tasks t LEFT JOIN users u ON t.created_by = u.id WHERE t.assigned_to = ? ORDER BY t.created_at DESC",
+      args: [req.user.id],
+    });
+    res.json((result.rows as any[]).map((t) => ({ ...t, tags: JSON.parse(t.tags || "[]") })));
+  });
+
+  app.patch("/api/tasks/:id", studentApiLimiter, authenticate, async (req: any, res: any) => {
+    const taskResult = await db.execute({ sql: "SELECT * FROM tasks WHERE id = ?", args: [req.params.id] });
+    const task = taskResult.rows[0] as any;
+    if (!task) return res.status(404).json({ message: "Not found" });
+    if (req.user.role === "student") {
+      if (task.assigned_to !== req.user.id) return res.status(403).json({ message: "Not authorized" });
       const { status, actual_hours } = req.body;
-      if (status && !['in_progress', 'in_review'].includes(status)) return res.status(400).json({ message: 'Students can only set in_progress or in_review' });
-      if (status) db.prepare('UPDATE tasks SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(status, req.params.id);
-      if (actual_hours !== undefined) db.prepare('UPDATE tasks SET actual_hours = ? WHERE id = ?').run(actual_hours, req.params.id);
+      if (status && !["in_progress", "in_review"].includes(status)) {
+        return res.status(400).json({ message: "Students can only set in_progress or in_review" });
+      }
+      if (status) await db.execute({ sql: "UPDATE tasks SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", args: [status, req.params.id] });
+      if (actual_hours !== undefined) await db.execute({ sql: "UPDATE tasks SET actual_hours = ? WHERE id = ?", args: [actual_hours, req.params.id] });
     }
-    res.json({ message: 'Updated' });
+    res.json({ message: "Updated" });
   });
 
-  app.post('/api/tasks/:id/comments', studentApiLimiter, authenticate, (req: any, res: any) => {
-    const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id) as any;
-    if (!task) return res.status(404).json({ message: 'Not found' });
-    if (req.user.role === 'student' && task.assigned_to !== req.user.id) return res.status(403).json({ message: 'Not authorized' });
+  app.post("/api/tasks/:id/comments", studentApiLimiter, authenticate, async (req: any, res: any) => {
+    const taskResult = await db.execute({ sql: "SELECT * FROM tasks WHERE id = ?", args: [req.params.id] });
+    const task = taskResult.rows[0] as any;
+    if (!task) return res.status(404).json({ message: "Not found" });
+    if (req.user.role === "student" && task.assigned_to !== req.user.id) return res.status(403).json({ message: "Not authorized" });
     const { content } = req.body;
     const id = crypto.randomUUID();
-    db.prepare('INSERT INTO task_comments (id, task_id, user_id, content) VALUES (?, ?, ?, ?)').run(id, req.params.id, req.user.id, content);
+    await db.execute({ sql: "INSERT INTO task_comments (id, task_id, user_id, content) VALUES (?, ?, ?, ?)", args: [id, req.params.id, req.user.id, content] });
     res.status(201).json({ id });
   });
 
-  // ─── Cohorts ─────────────────────────────────────────────────────────────────
-  app.get('/api/admin/cohorts', adminApiLimiter, requireAdmin, (req, res) => {
-    const cohorts = db.prepare(`SELECT c.*, (SELECT COUNT(*) FROM cohort_members cm WHERE cm.cohort_id = c.id AND cm.status = 'active') as member_count FROM cohorts c ORDER BY c.created_at DESC`).all();
-    res.json(cohorts);
+  // ─── Workspace Routes ──────────────────────────────────────────────────────────
+  app.get("/api/workspace/tasks", studentApiLimiter, authenticate, async (req: any, res: any) => {
+    const profileResult = await db.execute({ sql: "SELECT intern_role FROM student_profiles WHERE user_id = ?", args: [req.user.id] });
+    const profile = profileResult.rows[0] as any;
+    const internRole = profile?.intern_role || null;
+    let sql = "SELECT t.*, u.name as creator_name FROM tasks t LEFT JOIN users u ON t.created_by = u.id WHERE (t.assigned_to = ?";
+    const args: any[] = [req.user.id];
+    if (internRole) {
+      sql += " OR t.assigned_role = ?";
+      args.push(internRole);
+    }
+    sql += ") ORDER BY t.created_at DESC";
+    const result = await db.execute({ sql, args });
+    res.json((result.rows as any[]).map((t) => ({ ...t, tags: JSON.parse(t.tags || "[]") })));
   });
 
-  app.post('/api/admin/cohorts', adminApiLimiter, requireAdmin, (req, res) => {
-    const { name, start_date, end_date, max_capacity, fee_amount } = req.body;
-    if (!name) return res.status(400).json({ message: 'Name required' });
-    const id = crypto.randomUUID();
-    db.prepare('INSERT INTO cohorts (id, name, start_date, end_date, max_capacity, fee_amount) VALUES (?, ?, ?, ?, ?, ?)').run(id, name, start_date || null, end_date || null, max_capacity || 10, fee_amount || null);
-    res.status(201).json({ id });
+  app.patch("/api/workspace/tasks/:id/submit", studentApiLimiter, authenticate, async (req: any, res: any) => {
+    const { submission_url, submission_note } = req.body;
+    const taskResult = await db.execute({ sql: "SELECT * FROM tasks WHERE id = ?", args: [req.params.id] });
+    const task = taskResult.rows[0] as any;
+    if (!task) return res.status(404).json({ message: "Not found" });
+    if (task.assigned_to !== req.user.id) return res.status(403).json({ message: "Not authorized" });
+    await db.execute({
+      sql: "UPDATE tasks SET submission_url = ?, submission_note = ?, status = 'in_review', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      args: [submission_url || null, submission_note || null, req.params.id],
+    });
+    const adminResult = await db.execute({ sql: "SELECT id FROM users WHERE role IN ('admin', 'superadmin') LIMIT 1", args: [] });
+    const admin = adminResult.rows[0] as any;
+    if (admin) {
+      await db.execute({
+        sql: "INSERT INTO notifications (id, user_id, message, type) VALUES (?, ?, ?, 'task_reviewed')",
+        args: [crypto.randomUUID(), admin.id, `Task submitted for review: ${task.title}`],
+      });
+    }
+    res.json({ message: "Submitted" });
   });
 
-  app.patch('/api/admin/cohorts/:id', adminApiLimiter, requireAdmin, (req, res) => {
-    const { name, status, start_date, end_date, max_capacity, fee_amount } = req.body;
-    db.prepare('UPDATE cohorts SET name = COALESCE(?, name), status = COALESCE(?, status), start_date = COALESCE(?, start_date), end_date = COALESCE(?, end_date), max_capacity = COALESCE(?, max_capacity), fee_amount = COALESCE(?, fee_amount) WHERE id = ?').run(name || null, status || null, start_date || null, end_date || null, max_capacity || null, fee_amount || null, req.params.id);
-    res.json({ message: 'Updated' });
+  app.get("/api/workspace/calendar", studentApiLimiter, authenticate, async (req: any, res: any) => {
+    const profileResult = await db.execute({ sql: "SELECT intern_role FROM student_profiles WHERE user_id = ?", args: [req.user.id] });
+    const profile = profileResult.rows[0] as any;
+    const internRole = profile?.intern_role || null;
+    let sql = "SELECT * FROM calendar_events WHERE target_role = 'all' OR target_user_id = ?";
+    const args: any[] = [req.user.id];
+    if (internRole) {
+      sql += " OR target_role = ?";
+      args.push(internRole);
+    }
+    sql += " ORDER BY event_date ASC";
+    const result = await db.execute({ sql, args });
+    res.json(result.rows as any[]);
   });
 
-  app.get('/api/admin/cohorts/:id', adminApiLimiter, requireAdmin, (req, res) => {
-    const cohort = db.prepare('SELECT * FROM cohorts WHERE id = ?').get(req.params.id) as any;
-    if (!cohort) return res.status(404).json({ message: 'Not found' });
-    const members = db.prepare(`SELECT cm.*, u.name, u.email FROM cohort_members cm JOIN users u ON cm.user_id = u.id WHERE cm.cohort_id = ?`).all(req.params.id);
-    res.json({ ...cohort, members });
+  app.get("/api/workspace/notifications", studentApiLimiter, authenticate, async (req: any, res: any) => {
+    const result = await db.execute({ sql: "SELECT * FROM notifications WHERE user_id = ? AND read = 0 ORDER BY created_at DESC", args: [req.user.id] });
+    res.json(result.rows as any[]);
   });
 
-  app.post('/api/admin/cohorts/:id/members', adminApiLimiter, requireAdmin, (req, res) => {
-    const { user_id } = req.body;
-    try {
-      db.prepare('INSERT INTO cohort_members (cohort_id, user_id) VALUES (?, ?)').run(req.params.id, user_id);
-      res.status(201).json({ message: 'Member added' });
-    } catch (e: any) { res.status(400).json({ message: e.message }); }
+  app.patch("/api/workspace/notifications/:id", studentApiLimiter, authenticate, async (req: any, res: any) => {
+    await db.execute({ sql: "UPDATE notifications SET read = 1 WHERE id = ? AND user_id = ?", args: [req.params.id, req.user.id] });
+    res.json({ message: "Marked as read" });
   });
 
-  // ─── Communications ───────────────────────────────────────────────────────────
-  app.get('/api/admin/contacts', adminApiLimiter, requireAdmin, (req, res) => {
-    const contacts = db.prepare('SELECT * FROM contact_submissions ORDER BY submitted_at DESC').all();
-    res.json(contacts);
+  app.get("/api/workspace/leaderboard", studentApiLimiter, authenticate, async (req: any, res: any) => {
+    const { role } = req.query as any;
+    let sql = "SELECT u.id, u.name, sp.intern_role, sp.points_total FROM users u JOIN student_profiles sp ON u.id = sp.user_id WHERE u.role = 'student' AND u.is_active = 1";
+    const args: any[] = [];
+    if (role) { sql += " AND sp.intern_role = ?"; args.push(role); }
+    sql += " ORDER BY sp.points_total DESC";
+    const result = await db.execute({ sql, args });
+    res.json(result.rows as any[]);
   });
 
-  app.patch('/api/admin/contacts/:id', adminApiLimiter, requireAdmin, (req, res) => {
-    const { is_read, is_archived } = req.body;
-    if (is_read !== undefined) db.prepare('UPDATE contact_submissions SET is_read = ? WHERE id = ?').run(is_read ? 1 : 0, req.params.id);
-    if (is_archived !== undefined) db.prepare('UPDATE contact_submissions SET is_archived = ? WHERE id = ?').run(is_archived ? 1 : 0, req.params.id);
-    res.json({ message: 'Updated' });
+  app.get("/api/workspace/profile", studentApiLimiter, authenticate, async (req: any, res: any) => {
+    const result = await db.execute({
+      sql: "SELECT u.id, u.name, u.email, u.created_at, sp.* FROM users u LEFT JOIN student_profiles sp ON u.id = sp.user_id WHERE u.id = ?",
+      args: [req.user.id],
+    });
+    const profile = result.rows[0] as any;
+    if (!profile) return res.status(404).json({ message: "Not found" });
+    const taskStatsResult = await db.execute({
+      sql: "SELECT COUNT(*) as total, SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END) as completed FROM tasks WHERE assigned_to = ?",
+      args: [req.user.id],
+    });
+    const stats = taskStatsResult.rows[0] as any;
+    res.json({
+      ...profile,
+      skills: JSON.parse(profile.skills || "[]"),
+      badges_earned: JSON.parse(profile.badges_earned || "[]"),
+      task_stats: stats,
+    });
   });
 
-  app.get('/api/admin/announcements', adminApiLimiter, requireAdmin, (req, res) => {
-    const announcements = db.prepare('SELECT a.*, u.name as creator_name FROM announcements a JOIN users u ON a.created_by = u.id ORDER BY a.is_pinned DESC, a.created_at DESC').all();
-    res.json(announcements);
-  });
-
-  app.post('/api/admin/announcements', adminApiLimiter, requireAdmin, (req, res) => {
-    const { title, content, is_pinned } = req.body;
-    if (!title || !content) return res.status(400).json({ message: 'Title and content required' });
-    const id = crypto.randomUUID();
-    db.prepare('INSERT INTO announcements (id, title, content, created_by, is_pinned) VALUES (?, ?, ?, ?, ?)').run(id, title, content, (req as any).user.id, is_pinned ? 1 : 0);
-    res.status(201).json({ id });
-  });
-
-  app.get('/api/announcements', studentApiLimiter, authenticate, (req, res) => {
-    const announcements = db.prepare('SELECT * FROM announcements ORDER BY is_pinned DESC, created_at DESC LIMIT 10').all();
-    res.json(announcements);
-  });
-
-  // ─── Analytics ────────────────────────────────────────────────────────────────
-  app.get('/api/admin/analytics', adminApiLimiter, requireAdmin, (req, res) => {
-    const tasksByStatus = db.prepare("SELECT status, COUNT(*) as count FROM tasks GROUP BY status").all();
-    const tasksByPriority = db.prepare("SELECT priority, COUNT(*) as count FROM tasks GROUP BY priority").all();
-    const internActivity = db.prepare("SELECT u.name, COUNT(t.id) as task_count, SUM(CASE WHEN t.status='completed' THEN 1 ELSE 0 END) as completed FROM users u LEFT JOIN tasks t ON t.assigned_to = u.id WHERE u.role = 'student' GROUP BY u.id ORDER BY task_count DESC LIMIT 10").all();
-    const overdueTasks = db.prepare("SELECT COUNT(*) as count FROM tasks WHERE due_date < date('now') AND status NOT IN ('completed','blocked')").get() as any;
-    res.json({ tasksByStatus, tasksByPriority, internActivity, overdueTasks: overdueTasks.count });
-  });
-
-  // ─── Projects (admin) ─────────────────────────────────────────────────────────
-  app.get('/api/admin/projects', adminApiLimiter, requireAdmin, (req, res) => {
-    const projects = db.prepare('SELECT * FROM projects ORDER BY created_at DESC').all().map((p: any) => ({ ...p, skills_required: JSON.parse(p.skills_required || '[]') }));
-    res.json(projects);
-  });
-
-  // Vite middleware for development
+  // ─── Vite / Static serving ────────────────────────────────────────────────────
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },

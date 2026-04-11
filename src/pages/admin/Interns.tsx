@@ -179,8 +179,8 @@ export default function Interns() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{intern.university || '—'}</td>
-                    <td className="px-4 py-3 text-slate-600 hidden lg:table-cell">{intern.major || '—'}</td>
+                    <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{intern.university || 'N/A'}</td>
+                    <td className="px-4 py-3 text-slate-600 hidden lg:table-cell">{intern.major || 'N/A'}</td>
                     <td className="px-4 py-3 hidden sm:table-cell"><StatusBadge status={intern.is_active ? 'active' : 'inactive'} /></td>
                     <td className="px-4 py-3 text-slate-400 text-xs hidden lg:table-cell">{new Date(intern.created_at).toLocaleDateString()}</td>
                     <td className="px-4 py-3">

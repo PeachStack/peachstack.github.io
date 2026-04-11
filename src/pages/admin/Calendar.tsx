@@ -81,7 +81,7 @@ function AddEventModal({ date, onClose, onSave }: { date: Date; onClose: () => v
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-display text-lg font-bold text-slate-900">
-            Add Event — {date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+            Add Event: {date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
           </h3>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors">
             <X size={18} />

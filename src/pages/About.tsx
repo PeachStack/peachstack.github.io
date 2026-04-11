@@ -5,7 +5,7 @@ const founders = [
   {
     name: 'Arnav Hazari',
     title: 'Co-Founder',
-    education: 'Management Information Systems @ University of Georgia (3.9 GPA)',
+    education: 'Management Information Systems @ University of Georgia',
     experience: [
       'AI Development Fellow at Handshake',
       'Generative AI Specialist at Uber AI Solutions',
@@ -23,7 +23,7 @@ const founders = [
       'AI Development Fellow at Handshake',
       'Eagle Scout',
     ],
-    bio: 'Srikar leads operations, finance, and business development. His background spans risk analysis, financial modeling, and clinical operations — he brings the rigor of compliance and the instincts of a builder to everything Peachstack does.',
+    bio: 'Srikar leads operations, finance, and business development. His background spans risk analysis, financial modeling, and clinical operations, bringing the rigor of compliance and the instincts of a builder to everything Peachstack does.',
     tech: null,
     avatar: 'Srikar_PFP.jpg',
   },
@@ -50,7 +50,7 @@ export default function About() {
             </h1>
             <p className="text-xl text-slate-400 leading-relaxed max-w-3xl mx-auto">
               Peachstack was founded in Atlanta by two builders who saw the same problem from both
-              sides — students who couldn't get experience without experience, and businesses that
+              sides: students who couldn't get experience without experience, and businesses that
               couldn't find reliable junior talent without spending months training them. We decided
               to fix both at once.
             </p>
@@ -144,7 +144,7 @@ export default function About() {
               We are not a job board. We are not a bootcamp.
             </p>
             <p className="text-xl text-slate-600 leading-relaxed mb-6">
-              We are the operating layer between ambition and opportunity — built by people who have
+              We are the operating layer between ambition and opportunity, built by people who have
               worked at the companies you want to work at, and who know exactly what it takes to get
               there.
             </p>

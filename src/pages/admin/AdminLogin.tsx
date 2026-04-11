@@ -50,7 +50,7 @@ export default function AdminLogin() {
             <span className="text-peach-400">internship program</span><br />
             from one place.
           </h1>
-          <p className="mt-4 text-slate-400 text-lg">Interns, tasks, cohorts, and communications — all in one secure dashboard.</p>
+          <p className="mt-4 text-slate-400 text-lg">Interns, tasks, cohorts, and communications, all in one secure dashboard.</p>
         </div>
         <p className="text-slate-600 text-sm">© 2026 Peachstack · Atlanta, Georgia</p>
       </div>

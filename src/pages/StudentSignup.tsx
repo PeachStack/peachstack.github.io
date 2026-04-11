@@ -17,7 +17,7 @@ export default function StudentSignup() {
         </div>
         <h1 className="text-4xl font-bold text-slate-900 mb-4">Apply via Google Forms</h1>
         <p className="text-lg text-slate-600 mb-8">
-          Applications are reviewed personally. Click below to fill out our short application form — it takes about 5 minutes.
+          Applications are reviewed personally. Click below to fill out our short application form, which takes about 5 minutes.
         </p>
         <a
           href={GOOGLE_FORM_URL}

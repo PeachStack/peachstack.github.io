@@ -2,8 +2,8 @@ import { motion } from 'motion/react';
 import { Code2, Database, Shield, Mail, Layers } from 'lucide-react';
 
 const stack = [
-  { label: 'Frontend', value: 'React, TypeScript, Vite, Tailwind CSS — deployed on GitHub Pages' },
-  { label: 'Backend', value: 'Node.js, Express, TypeScript — deployed on Render' },
+  { label: 'Frontend', value: 'React, TypeScript, Vite, Tailwind CSS, deployed on GitHub Pages' },
+  { label: 'Backend', value: 'Node.js, Express, TypeScript, deployed on Render' },
   { label: 'Database', value: 'Turso (hosted SQLite, edge-distributed)' },
   { label: 'Auth', value: 'JWT with httpOnly cookies, bcrypt, rate limiting, helmet security headers' },
   { label: 'Email', value: 'Resend' },
@@ -29,7 +29,7 @@ export default function Developers() {
             </h1>
             <p className="text-xl text-slate-400 leading-relaxed max-w-3xl mx-auto">
               Peachstack is a full-stack platform built on a modern, production-grade architecture.
-              We ship real products — for real clients — on a real tech stack.
+              We ship real products, for real clients, on a real tech stack.
             </p>
           </motion.div>
         </div>

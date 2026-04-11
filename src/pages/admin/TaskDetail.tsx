@@ -105,15 +105,15 @@ export default function TaskDetail() {
               </div>
               <div>
                 <p className="text-slate-400 text-xs mb-1">Assignee</p>
-                <p className="font-medium text-slate-900">{task.assignee_name || '—'}</p>
+                <p className="font-medium text-slate-900">{task.assignee_name || 'N/A'}</p>
               </div>
               <div>
                 <p className="text-slate-400 text-xs mb-1">Due Date</p>
-                <p className="font-medium text-slate-900">{task.due_date ? new Date(task.due_date).toLocaleDateString() : '—'}</p>
+                <p className="font-medium text-slate-900">{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A'}</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><p className="text-slate-400 text-xs mb-1">Est. Hours</p><p className="font-medium text-slate-900">{task.estimated_hours ?? '—'}</p></div>
-                <div><p className="text-slate-400 text-xs mb-1">Actual Hours</p><p className="font-medium text-slate-900">{task.actual_hours ?? '—'}</p></div>
+                <div><p className="text-slate-400 text-xs mb-1">Est. Hours</p><p className="font-medium text-slate-900">{task.estimated_hours ?? 'N/A'}</p></div>
+                <div><p className="text-slate-400 text-xs mb-1">Actual Hours</p><p className="font-medium text-slate-900">{task.actual_hours ?? 'N/A'}</p></div>
               </div>
               {task.tags.length > 0 && (
                 <div><p className="text-slate-400 text-xs mb-1">Tags</p>

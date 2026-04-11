@@ -38,7 +38,7 @@ const roles = [
     lightColor: 'bg-peach-50',
     textColor: 'text-peach-700',
     borderColor: 'border-peach-100',
-    desc: "You'll build real products that go live. Client websites, booking systems, CRMs — all shipped to production with real users on the other end. Best portfolio builder out there.",
+    desc: "You'll build real products that go live. Client websites, booking systems, CRMs, all shipped to production with real users on the other end. Best portfolio builder out there.",
   },
   {
     icon: Megaphone,
@@ -72,7 +72,7 @@ export default function Apply() {
           >
             <div className="inline-flex items-center gap-2 rounded-full bg-peach-50 px-4 py-1.5 text-sm font-bold text-peach-600 mb-6">
               <Sparkles size={16} />
-              <span>Peachstack Intern Application — Summer 2026</span>
+              <span>Peachstack Intern Application: Summer 2026</span>
             </div>
             <h1 className="font-display text-5xl font-extrabold tracking-tight text-slate-900 sm:text-6xl mb-6">
               Build something <span className="text-peach-500 italic">real</span> with us.

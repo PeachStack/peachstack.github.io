@@ -89,7 +89,7 @@ export default function InternDetail() {
           <h3 className="font-semibold text-slate-900 mb-4">Academic Info</h3>
           <dl className="space-y-3 text-sm">
             {[['University', intern.university], ['Major', intern.major], ['Minor', intern.minor], ['Year', intern.year]].map(([k, v]) => (
-              <div key={k} className="flex justify-between"><dt className="text-slate-500">{k}</dt><dd className="font-medium text-slate-900">{v || '—'}</dd></div>
+              <div key={k} className="flex justify-between"><dt className="text-slate-500">{k}</dt><dd className="font-medium text-slate-900">{v || 'N/A'}</dd></div>
             ))}
           </dl>
         </div>

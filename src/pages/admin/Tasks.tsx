@@ -107,7 +107,7 @@ export default function Tasks() {
                       </select>
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell"><PriorityBadge priority={task.priority} /></td>
-                    <td className="px-4 py-3 text-slate-400 text-xs hidden lg:table-cell">{task.due_date ? new Date(task.due_date).toLocaleDateString() : '—'}</td>
+                    <td className="px-4 py-3 text-slate-400 text-xs hidden lg:table-cell">{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A'}</td>
                   </tr>
                 ))}
               </tbody>

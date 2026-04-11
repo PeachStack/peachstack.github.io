@@ -49,7 +49,8 @@ async function startServer() {
     const allowedOrigins = process.env.ALLOWED_ORIGINS
       ? process.env.ALLOWED_ORIGINS.split(",")
       : ["http://localhost:3000", "http://localhost:5173", "https://peachstackadmin.github.io", "https://sjujala.github.io"];
-    if (origin && !allowedOrigins.includes(origin)) {
+    // Block requests with no origin header and requests from disallowed origins
+    if (!origin || !allowedOrigins.includes(origin)) {
       return res.status(403).json({ message: "Forbidden" });
     }
     next();

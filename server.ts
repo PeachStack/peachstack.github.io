@@ -460,9 +460,28 @@ async function startServer() {
   app.patch("/api/admin/interns/:id", adminApiLimiter, requireAdmin, async (req, res) => {
     const { is_active } = req.body;
     if (is_active !== undefined) {
-      await db.execute({ sql: "UPDATE users SET is_active = ? WHERE id = ?", args: [is_active ? 1 : 0, req.params.id] });
+      await db.execute({ sql: "UPDATE users SET is_active = ?, token_version = token_version + 1 WHERE id = ?", args: [is_active ? 1 : 0, req.params.id] });
     }
     res.json({ message: "Updated" });
+  });
+
+  app.delete("/api/admin/interns/:id", adminApiLimiter, requireAdmin, async (req, res) => {
+    const internResult = await db.execute({ sql: "SELECT id FROM users WHERE id = ? AND role = 'student'", args: [req.params.id] });
+    if (internResult.rows.length === 0) return res.status(404).json({ message: "Intern not found" });
+    const id = req.params.id;
+    // Unassign tasks rather than delete them
+    await db.execute({ sql: "UPDATE tasks SET assigned_to = NULL WHERE assigned_to = ?", args: [id] });
+    // Clean up all related data
+    await db.execute({ sql: "DELETE FROM task_comments WHERE user_id = ?", args: [id] });
+    await db.execute({ sql: "DELETE FROM task_activity_log WHERE user_id = ?", args: [id] });
+    await db.execute({ sql: "DELETE FROM notifications WHERE user_id = ?", args: [id] });
+    await db.execute({ sql: "DELETE FROM message_group_members WHERE user_id = ?", args: [id] });
+    await db.execute({ sql: "DELETE FROM group_message_reads WHERE user_id = ?", args: [id] });
+    await db.execute({ sql: "DELETE FROM messages WHERE sender_id = ? OR recipient_id = ?", args: [id, id] });
+    await db.execute({ sql: "DELETE FROM message_threads WHERE participant_one = ? OR participant_two = ?", args: [id, id] });
+    await db.execute({ sql: "DELETE FROM student_profiles WHERE user_id = ?", args: [id] });
+    await db.execute({ sql: "DELETE FROM users WHERE id = ? AND role = 'student'", args: [id] });
+    res.json({ message: "Intern account permanently deleted" });
   });
 
   app.post("/api/admin/interns/:id/notes", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
@@ -1122,6 +1141,23 @@ async function startServer() {
       badges_earned: JSON.parse(profile.badges_earned || "[]"),
       task_stats: stats,
     });
+  });
+
+  app.patch("/api/workspace/profile", studentApiLimiter, authenticate, async (req: any, res: any) => {
+    const { name, university, bio, major, year } = req.body;
+    if (name && typeof name === "string" && name.trim()) {
+      await db.execute({ sql: "UPDATE users SET name = ? WHERE id = ?", args: [name.trim(), req.user.id] });
+    }
+    await db.execute({
+      sql: `UPDATE student_profiles SET
+        university = COALESCE(?, university),
+        bio = COALESCE(?, bio),
+        major = COALESCE(?, major),
+        year = COALESCE(?, year)
+        WHERE user_id = ?`,
+      args: [university || null, bio || null, major || null, year || null, req.user.id],
+    });
+    res.json({ message: "Profile updated" });
   });
 
   // ─── Vite / Static serving ────────────────────────────────────────────────────

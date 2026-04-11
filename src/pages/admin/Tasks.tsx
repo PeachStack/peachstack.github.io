@@ -15,14 +15,20 @@ export default function Tasks() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const fetchTasks = () => {
     setLoading(true);
+    setError(false);
     const params = new URLSearchParams({ limit: '100' });
     if (statusFilter) params.set('status', statusFilter);
     fetch(apiUrl(`/api/admin/tasks?${params}`), { credentials: 'include' })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error('Failed to load tasks');
+        return r.json();
+      })
       .then(data => setTasks(data.data || []))
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   };
 
@@ -68,6 +74,12 @@ export default function Tasks() {
 
       {loading ? (
         <div className="flex items-center justify-center py-16"><div className="h-8 w-8 border-4 border-peach-500 border-t-transparent rounded-full animate-spin" /></div>
+      ) : error ? (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center">
+          <p className="font-medium text-slate-500 mb-2">Could not load tasks</p>
+          <p className="text-sm text-slate-400 mb-4">Check your connection and try again.</p>
+          <button onClick={fetchTasks} className="px-4 py-2 rounded-xl bg-peach-500 text-white text-sm font-bold hover:bg-peach-600 transition-colors">Retry</button>
+        </div>
       ) : view === 'list' ? (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           {filtered.length === 0 ? (

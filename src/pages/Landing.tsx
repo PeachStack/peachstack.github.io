@@ -4,6 +4,8 @@ import PeachLogo from '../components/ui/PeachLogo';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
 
+const GOOGLE_FORM_URL = 'https://forms.gle/8nDwdqpbnXuYnhj76';
+
 export default function Landing() {
   return (
     <div className="overflow-hidden">
@@ -26,14 +28,16 @@ export default function Landing() {
               <p className="mt-6 text-lg leading-relaxed text-slate-600">
                 Peachstack bridges the gap between students and the corporate world. Build real skills, complete high impact projects, and launch your career from day one.
               </p>
-              <div className="mt-10 flex flex-col gap-4 sm:flex-row">
-                <Link
-                  to="/apply"
+                <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+                <a
+                  href={GOOGLE_FORM_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 rounded-2xl bg-peach-500 px-8 py-4 text-lg font-bold text-white shadow-xl shadow-peach-200 transition-all hover:bg-peach-600 hover:shadow-peach-300 active:scale-95"
                 >
                   Join as a Student
                   <ArrowRight size={20} />
-                </Link>
+                </a>
                 <Link
                   to="/for-employers"
                   className="flex items-center justify-center gap-2 rounded-2xl border-2 border-slate-200 bg-white px-8 py-4 text-lg font-bold text-slate-900 transition-all hover:border-slate-300 hover:bg-slate-50 active:scale-95"
@@ -343,12 +347,14 @@ export default function Landing() {
                 Join the marketplace where ambition meets corporate opportunity.
               </p>
               <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-                <Link
-                  to="/apply"
+                <a
+                  href={GOOGLE_FORM_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-full rounded-2xl bg-peach-500 px-8 py-4 text-lg font-bold text-white transition-all hover:bg-peach-600 sm:w-auto"
                 >
                   Start as Student
-                </Link>
+                </a>
                 <Link
                   to="/get-started"
                   className="w-full rounded-2xl bg-white px-8 py-4 text-lg font-bold text-slate-900 transition-all hover:bg-slate-50 sm:w-auto"

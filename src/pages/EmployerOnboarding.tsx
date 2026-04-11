@@ -4,6 +4,7 @@ import { useState, FormEvent, ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
+import { apiFetch } from '../lib/api';
 
 export default function EmployerOnboarding() {
   const navigate = useNavigate();
@@ -17,15 +18,13 @@ export default function EmployerOnboarding() {
     invoiceFile: null as File | null
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/employer', {
+      await apiFetch('/api/employer', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-      if (!res.ok) throw new Error('Failed');
       toast.success('Thank you! We will be in touch shortly.');
     } catch {
       toast.error('Something went wrong. Please try again.');

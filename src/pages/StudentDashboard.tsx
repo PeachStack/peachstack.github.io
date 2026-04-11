@@ -1,7 +1,6 @@
 import { motion } from 'motion/react';
 import { MOCK_STUDENT } from '../constants';
-import { Badge as BadgeIcon, Brain, Table, Rocket, CheckCircle2, Clock, Lock, ArrowRight, GraduationCap, Trophy, Star, Briefcase, ChevronRight, Edit3, Save } from 'lucide-react';
-import PeachLogo from '../components/ui/PeachLogo';
+import { Badge as BadgeIcon, Brain, Table, Rocket, CheckCircle2, Clock, Lock, ArrowRight, GraduationCap, Trophy, Briefcase, ChevronRight, Edit3, Save } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useState, FormEvent, useEffect } from 'react';
 import Modal from '../components/ui/Modal';
@@ -94,24 +93,6 @@ export default function StudentDashboard() {
               </div>
               <p className="mt-3 max-w-2xl text-slate-600">{student.bio}</p>
               <div className="mt-6 flex flex-wrap gap-6">
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center justify-center text-peach-600">
-                    <PeachLogo size={24} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Stack Points</p>
-                    <p className="text-lg font-bold text-slate-900">{student.stackPoints.toLocaleString()}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
-                    <Star size={20} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Rank</p>
-                    <p className="text-lg font-bold text-slate-900">Top 5%</p>
-                  </div>
-                </div>
               </div>
             </div>
             <div className="flex w-full flex-col gap-3 md:w-auto">

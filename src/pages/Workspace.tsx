@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { CheckCircle2, Clock, Briefcase, Calendar, ChevronRight, Layout, ListTodo, Zap, MessageSquare } from 'lucide-react';
+import { CheckCircle2, Clock, Briefcase, Calendar, ChevronRight, Layout, ListTodo, MessageSquare } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
@@ -51,7 +51,7 @@ export default function Workspace() {
       })
       .catch(() => {});
 
-    fetch(apiUrl('/api/tasks/mine'), { credentials: 'include' })
+    fetch(apiUrl('/api/workspace/tasks'), { credentials: 'include' })
       .then(r => r.ok ? r.json() : [])
       .then(data => setTasks(Array.isArray(data) ? data : []))
       .catch(() => setTasks([]))
@@ -105,13 +105,6 @@ export default function Workspace() {
                 </span>
               )}
             </Link>
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm border border-slate-100 text-peach-500">
-              <Zap size={24} />
-            </div>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Daily Streak</p>
-              <p className="text-lg font-bold text-slate-900">12 Days</p>
-            </div>
           </div>
         </div>
 

@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Mail, Lock, ArrowRight, Sparkles, AlertCircle } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { apiFetch } from '../lib/api';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -17,17 +18,10 @@ export default function Login() {
     setError(null);
 
     try {
-      const response = await fetch('/api/login', {
+      const data = await apiFetch('/api/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Sign In failed');
-      }
 
       toast.success(`Welcome back, ${data.user.name}!`);
       

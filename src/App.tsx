@@ -5,6 +5,7 @@ import PeachLogo from './components/ui/PeachLogo';
 import { useState, useEffect } from 'react';
 import { cn } from './lib/utils';
 import { Toaster, toast } from 'sonner';
+import { apiFetch } from './lib/api';
 
 // Pages
 import Landing from './pages/Landing';
@@ -52,17 +53,11 @@ function Navbar() {
   useEffect(() => {
     const checkUser = async () => {
       try {
-        const response = await fetch('/api/me');
-        if (response.ok) {
-          const data = await response.json();
-          setUserName(data.user.name);
-          setUserRole(data.user.role);
-          localStorage.setItem('peachstack_user_name', data.user.name);
-          localStorage.setItem('peachstack_user_role', data.user.role);
-        } else {
-          setUserName(localStorage.getItem('peachstack_user_name'));
-          setUserRole(localStorage.getItem('peachstack_user_role'));
-        }
+        const data = await apiFetch('/api/me');
+        setUserName(data.user.name);
+        setUserRole(data.user.role);
+        localStorage.setItem('peachstack_user_name', data.user.name);
+        localStorage.setItem('peachstack_user_role', data.user.role);
       } catch (error) {
         setUserName(localStorage.getItem('peachstack_user_name'));
         setUserRole(localStorage.getItem('peachstack_user_role'));
@@ -85,7 +80,7 @@ function Navbar() {
 
   const handleSignOut = async () => {
     try {
-      await fetch('/api/logout', { method: 'POST' });
+      await apiFetch('/api/logout', { method: 'POST' });
       localStorage.removeItem('peachstack_user_name');
       localStorage.removeItem('peachstack_user_role');
       localStorage.removeItem('peachstack_user_university');

@@ -114,10 +114,9 @@ export default function ForEmployers() {
             >
               <div className="relative z-10 rounded-3xl bg-white p-2 shadow-2xl border border-slate-100 overflow-hidden">
                 <img
-                  src="https://github.com/user-attachments/assets/5ebe6804-00b0-4961-b553-44bc799560b2"
+                  src={`${import.meta.env.BASE_URL}crm-dashboard.png`}
                   alt="Peachstack CRM Dashboard"
                   className="rounded-2xl w-full h-auto shadow-inner"
-                  referrerPolicy="no-referrer"
                 />
               </div>
               {/* Decorative background element */}
@@ -134,10 +133,9 @@ export default function ForEmployers() {
             >
               <div className="relative z-10 rounded-3xl bg-white p-2 shadow-2xl border border-slate-100 overflow-hidden">
                 <img
-                  src="https://github.com/user-attachments/assets/3f3256d7-ed6b-481c-b909-c0621a7a3617"
+                  src={`${import.meta.env.BASE_URL}crm-revenue-pl.png`}
                   alt="Revenue & P&L Page"
                   className="rounded-2xl w-full h-auto shadow-inner"
-                  referrerPolicy="no-referrer"
                 />
               </div>
               {/* Decorative background element */}

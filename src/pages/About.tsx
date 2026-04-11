@@ -13,7 +13,7 @@ const founders = [
     ],
     bio: 'Arnav leads product, engineering, and client strategy. He has built data systems, automated financial workflows, and evaluated multimodal AI pipelines at scale. He bridges technical execution and business outcomes.',
     tech: 'Python, SQL, Streamlit, Pandas, AI/ML pipelines',
-    avatar: 'https://github.com/user-attachments/assets/ce22e509-0c1b-44ee-99fa-e114057e7555',
+    avatar: 'Arnav_PFP.jpg',
   },
   {
     name: 'Srikar Jujala',
@@ -25,7 +25,7 @@ const founders = [
     ],
     bio: 'Srikar leads operations, finance, and business development. His background spans risk analysis, financial modeling, and clinical operations — he brings the rigor of compliance and the instincts of a builder to everything Peachstack does.',
     tech: null,
-    avatar: 'https://github.com/user-attachments/assets/7e5d08d8-304c-4f44-bb02-224924aa690c',
+    avatar: 'Srikar_PFP.jpg',
   },
 ];
 
@@ -82,7 +82,7 @@ export default function About() {
               >
                 <div className="flex items-start gap-6 mb-8">
                   <div className="h-16 w-16 rounded-2xl overflow-hidden shadow-lg shrink-0 bg-slate-100">
-                    <img src={founder.avatar} alt={founder.name} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                    <img src={`${import.meta.env.BASE_URL}${founder.avatar}`} alt={founder.name} className="h-full w-full object-cover" />
                   </div>
                   <div>
                     <h3 className="font-display text-2xl font-bold text-slate-900">{founder.name}</h3>

@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Settings as SettingsIcon, Bell, Lock, User, Shield, CreditCard, HelpCircle, LogOut, ChevronRight, Save } from 'lucide-react';
+import { Settings as SettingsIcon, Bell, Lock, User, Shield, HelpCircle, LogOut, ChevronRight, Save } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
@@ -13,7 +13,6 @@ export default function Settings() {
     const savedName = localStorage.getItem('peachstack_user_name');
     if (savedName) {
       setUserName(savedName);
-      // Mock email based on name
       setEmail(savedName.toLowerCase().replace(' ', '.') + '@university.edu');
     }
   }, []);
@@ -28,7 +27,6 @@ export default function Settings() {
     { id: 'profile', label: 'Profile Settings', icon: User },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'security', label: 'Security', icon: Lock },
-    { id: 'billing', label: 'Billing', icon: CreditCard },
   ];
 
   return (
@@ -81,19 +79,6 @@ export default function Settings() {
             >
               {activeTab === 'profile' && (
                 <form onSubmit={handleSave} className="space-y-6">
-                  <div className="flex items-center gap-6 pb-6 border-b border-slate-50">
-                    <img
-                      src="https://picsum.photos/seed/student/200/200"
-                      alt="Profile"
-                      className="h-20 w-20 rounded-2xl object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div>
-                      <button type="button" className="text-sm font-bold text-peach-600 hover:underline">Change Photo</button>
-                      <p className="text-xs text-slate-400 mt-1">JPG, GIF or PNG. Max size of 2MB.</p>
-                    </div>
-                  </div>
-
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-slate-700">Full Name</label>
@@ -143,7 +128,7 @@ export default function Settings() {
                     {[
                       { label: 'Project Matches', desc: 'Get notified when a new project matches your stack.' },
                       { label: 'Task Reminders', desc: 'Receive alerts for upcoming project deadlines.' },
-                      { label: 'Platform Updates', desc: 'Stay informed about new features and badges.' },
+                      { label: 'Platform Updates', desc: 'Stay informed about new features and announcements.' },
                     ].map((item, i) => (
                       <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50">
                         <div>
@@ -165,41 +150,16 @@ export default function Settings() {
                     <div className="p-4 rounded-2xl border border-slate-100 flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
-                          <Shield size={20} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-slate-900">Two-Factor Authentication</p>
-                          <p className="text-xs text-slate-500">Add an extra layer of security to your account.</p>
-                        </div>
-                      </div>
-                      <button className="text-sm font-bold text-peach-600">Enable</button>
-                    </div>
-                    <div className="p-4 rounded-2xl border border-slate-100 flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
                           <Lock size={20} />
                         </div>
                         <div>
                           <p className="text-sm font-bold text-slate-900">Change Password</p>
-                          <p className="text-xs text-slate-500">Last changed 3 months ago.</p>
+                          <p className="text-xs text-slate-500">Update your account password.</p>
                         </div>
                       </div>
                       <button className="text-sm font-bold text-peach-600">Update</button>
                     </div>
                   </div>
-                </div>
-              )}
-
-              {activeTab === 'billing' && (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="h-16 w-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 mb-4">
-                    <CreditCard size={32} />
-                  </div>
-                  <h3 className="font-bold text-slate-900">No Billing History</h3>
-                  <p className="text-sm text-slate-500 max-w-xs mt-2">
-                    You are currently on the Free Student Plan. Paid features will appear here.
-                  </p>
-                  <button className="mt-6 rounded-xl bg-slate-900 px-6 py-2 text-sm font-bold text-white">Upgrade Plan</button>
                 </div>
               )}
             </motion.div>

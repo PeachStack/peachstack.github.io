@@ -1,9 +1,8 @@
-name: Deploy to GitHub Pages
+name: Deploy Frontend to GitHub Pages
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   build-and-deploy:
@@ -11,22 +10,25 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
       - name: Install dependencies
-        run: rm -f package-lock.json && npm install
+        run: |
+          rm -f package-lock.json
+          rm -rf node_modules
+          npm install --legacy-peer-deps
 
       - name: Build
         run: npm run build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
 
-      - name: Deploy
+      - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

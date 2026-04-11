@@ -4,54 +4,105 @@ import { Briefcase, ChevronRight, Edit3, Save, Trophy } from 'lucide-react';
 import { useState, FormEvent, useEffect } from 'react';
 import Modal from '../components/ui/Modal';
 import { toast } from 'sonner';
+import { apiUrl } from '../lib/api';
 
 export default function StudentDashboard() {
   const [student, setStudent] = useState(MOCK_STUDENT);
 
   useEffect(() => {
-    const savedName = localStorage.getItem('peachstack_user_name');
-    const savedFirstName = localStorage.getItem('peachstack_user_first_name');
-    const savedLastName = localStorage.getItem('peachstack_user_last_name');
-    const savedBirthday = localStorage.getItem('peachstack_user_birthday');
-    const savedUniversity = localStorage.getItem('peachstack_user_university');
-    const savedYear = localStorage.getItem('peachstack_user_year');
-    
-    if (savedName || savedUniversity || savedYear) {
-      setStudent(prev => ({ 
-        ...prev, 
-        name: savedName || prev.name,
-        firstName: savedFirstName || '',
-        lastName: savedLastName || '',
-        birthday: savedBirthday || '',
-        university: savedUniversity || prev.university,
-        year: savedYear || prev.year
-      }));
-    }
+    // Fetch profile from the server so first-login data is reflected immediately
+    fetch(apiUrl('/api/workspace/profile'), { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          setStudent(prev => ({
+            ...prev,
+            name: data.name || prev.name,
+            university: data.university || prev.university,
+            bio: data.bio || prev.bio,
+            year: data.year || prev.year,
+          }));
+          if (data.name) {
+            localStorage.setItem('peachstack_user_name', data.name);
+          }
+          if (data.university) {
+            localStorage.setItem('peachstack_user_university', data.university);
+          }
+        } else {
+          // Fallback to localStorage if API is unavailable
+          const savedName = localStorage.getItem('peachstack_user_name');
+          const savedUniversity = localStorage.getItem('peachstack_user_university');
+          const savedYear = localStorage.getItem('peachstack_user_year');
+          if (savedName || savedUniversity || savedYear) {
+            setStudent(prev => ({
+              ...prev,
+              name: savedName || prev.name,
+              university: savedUniversity || prev.university,
+              year: savedYear || prev.year,
+            }));
+          }
+        }
+      })
+      .catch(() => {
+        // Fallback to localStorage on network error
+        const savedName = localStorage.getItem('peachstack_user_name');
+        const savedUniversity = localStorage.getItem('peachstack_user_university');
+        const savedYear = localStorage.getItem('peachstack_user_year');
+        if (savedName || savedUniversity || savedYear) {
+          setStudent(prev => ({
+            ...prev,
+            name: savedName || prev.name,
+            university: savedUniversity || prev.university,
+            year: savedYear || prev.year,
+          }));
+        }
+      });
   }, []);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState({
-    firstName: localStorage.getItem('peachstack_user_first_name') || '',
-    lastName: localStorage.getItem('peachstack_user_last_name') || '',
+    firstName: '',
+    lastName: '',
     bio: student.bio,
     university: student.university
   });
 
-  const handleSaveProfile = (e: FormEvent) => {
-    e.preventDefault();
-    const fullName = `${editForm.firstName} ${editForm.lastName}`;
-    setStudent(prev => ({
+  // Keep edit form in sync when profile loads from server
+  useEffect(() => {
+    const nameParts = student.name.split(' ');
+    setEditForm(prev => ({
       ...prev,
-      name: fullName,
-      university: editForm.university,
-      bio: editForm.bio
+      firstName: nameParts[0] || '',
+      lastName: nameParts.slice(1).join(' ') || '',
+      bio: student.bio,
+      university: student.university,
     }));
-    localStorage.setItem('peachstack_user_name', fullName);
-    localStorage.setItem('peachstack_user_first_name', editForm.firstName);
-    localStorage.setItem('peachstack_user_last_name', editForm.lastName);
-    localStorage.setItem('peachstack_user_university', editForm.university);
-    setIsEditModalOpen(false);
-    toast.success('Profile updated successfully!');
+  }, [student.name, student.bio, student.university]);
+
+  const handleSaveProfile = async (e: FormEvent) => {
+    e.preventDefault();
+    const fullName = `${editForm.firstName} ${editForm.lastName}`.trim();
+    try {
+      const res = await fetch(apiUrl('/api/workspace/profile'), {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: fullName, university: editForm.university, bio: editForm.bio }),
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      setStudent(prev => ({
+        ...prev,
+        name: fullName,
+        university: editForm.university,
+        bio: editForm.bio
+      }));
+      localStorage.setItem('peachstack_user_name', fullName);
+      localStorage.setItem('peachstack_user_university', editForm.university);
+      setIsEditModalOpen(false);
+      toast.success('Profile updated successfully!');
+    } catch {
+      toast.error('Could not save profile. Please try again.');
+    }
   };
 
   const handleShareProfile = () => {

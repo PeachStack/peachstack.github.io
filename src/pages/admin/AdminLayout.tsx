@@ -18,7 +18,7 @@ export default function AdminLayout() {
     let isRetrying = false;
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
       let res: Response;
       try {
         res = await fetch(apiUrl('/api/me'), { credentials: 'include', signal: controller.signal });
@@ -38,10 +38,11 @@ export default function AdminLayout() {
       }
       setAdmin({ name: data.user.name });
     } catch {
-      // Retry once after 2 s before showing the error screen
-      if (attempt === 0) {
+      // Retry up to 3 times with increasing delays before showing the error screen
+      if (attempt < 3) {
         isRetrying = true;
-        setTimeout(() => checkAuth(1), 2000);
+        const delay = attempt === 0 ? 2000 : attempt === 1 ? 4000 : 6000;
+        setTimeout(() => checkAuth(attempt + 1), delay);
         return;
       }
       // Network error — show retry screen, do NOT redirect to login

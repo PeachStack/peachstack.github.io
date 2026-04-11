@@ -49,6 +49,7 @@ function ProfileSetupModal({ onComplete }: { onComplete: (name: string) => void 
       });
       if (!res.ok) throw new Error('Failed to save profile');
       localStorage.setItem('peachstack_user_name', fullName);
+      localStorage.setItem('peachstack_user_university', university.trim());
       onComplete(firstName.trim());
     } catch {
       setError('Could not save your profile. Please try again.');

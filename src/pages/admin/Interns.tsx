@@ -1,10 +1,83 @@
 import { useEffect, useState } from 'react';
+import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ChevronRight } from 'lucide-react';
+import { Search, ChevronRight, UserPlus, X } from 'lucide-react';
 import { apiUrl } from '../../lib/api';
 import StatusBadge from '../../components/admin/StatusBadge';
 
 interface Intern { id: string; name: string; email: string; university: string; major: string; year: string; is_active: number; created_at: string; }
+
+function CreateInternModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [internRole, setInternRole] = useState('');
+  const [tempPassword, setTempPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch(apiUrl('/api/admin/interns/create'), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, internRole, tempPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.message || 'Failed to create intern'); return; }
+      onCreated();
+      onClose();
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="font-display text-xl font-bold text-slate-900">Create Intern Account</h2>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-colors">
+            <X size={20} />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Full Name</label>
+            <input type="text" value={name} onChange={e => setName(e.target.value)} required className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent" placeholder="Jane Smith" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Email Address</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent" placeholder="jane@university.edu" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Role / Track</label>
+            <input type="text" value={internRole} onChange={e => setInternRole(e.target.value)} className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent" placeholder="e.g. Technology, Marketing, Sales" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Temporary Password</label>
+            <input type="text" value={tempPassword} onChange={e => setTempPassword(e.target.value)} required minLength={8} className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent" placeholder="Share with intern to log in" />
+            <p className="text-xs text-slate-400 mt-1">The intern will be prompted to change this after first login.</p>
+          </div>
+          {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">{error}</div>}
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+              Cancel
+            </button>
+            <button type="submit" disabled={loading} className="flex-1 py-3 rounded-xl bg-peach-500 text-sm font-bold text-white hover:bg-peach-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              {loading ? 'Creating...' : 'Create Account'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 export default function Interns() {
   const [interns, setInterns] = useState<Intern[]>([]);
@@ -12,6 +85,7 @@ export default function Interns() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
 
   const fetchInterns = () => {
     setLoading(true);
@@ -28,11 +102,24 @@ export default function Interns() {
 
   return (
     <div className="space-y-6">
+      {showCreate && (
+        <CreateInternModal
+          onClose={() => setShowCreate(false)}
+          onCreated={fetchInterns}
+        />
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-slate-900">Interns</h1>
           <p className="text-slate-500 text-sm mt-1">{total} total intern{total !== 1 ? 's' : ''}</p>
         </div>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="flex items-center gap-2 rounded-xl bg-peach-500 px-5 py-2.5 text-sm font-bold text-white hover:bg-peach-600 transition-colors active:scale-95"
+        >
+          <UserPlus size={16} />
+          Create Intern
+        </button>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">

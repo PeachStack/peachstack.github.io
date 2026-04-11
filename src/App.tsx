@@ -1,7 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, GraduationCap, ChevronDown, User, Settings as SettingsIcon, LogOut, Info, Building2, Mail, Twitter, Linkedin, Github, Instagram } from 'lucide-react';
+import { Menu, X, GraduationCap, ChevronDown, User, Settings as SettingsIcon, LogOut, Building2, Mail, Linkedin, Instagram } from 'lucide-react';
 import PeachLogo from './components/ui/PeachLogo';
+import ScrollToTop from './components/ScrollToTop';
 import { useState, useEffect } from 'react';
 import { cn } from './lib/utils';
 import { Toaster, toast } from 'sonner';
@@ -17,6 +18,7 @@ import EmployerOnboarding from './pages/EmployerOnboarding';
 import ForEmployers from './pages/ForEmployers';
 import Login from './pages/Login';
 import Workspace from './pages/Workspace';
+import WorkspaceLogin from './pages/WorkspaceLogin';
 import Settings from './pages/Settings';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
@@ -24,6 +26,12 @@ import Cookies from './pages/Cookies';
 import Contact from './pages/Contact';
 import Apply from './pages/Apply';
 import ComingSoon from './pages/ComingSoon';
+import About from './pages/About';
+import Community from './pages/Community';
+import BlogPage from './pages/BlogPage';
+import Developers from './pages/Developers';
+import Safety from './pages/Safety';
+import Guidelines from './pages/Guidelines';
 
 // Admin Pages
 import AdminLogin from './pages/admin/AdminLogin';
@@ -377,6 +385,9 @@ function Navbar() {
 }
 
 function Footer() {
+  const EMPLOYER_FORM_URL = 'https://docs.google.com/forms/d/1uz55KEIkH3XwnVJxvdQgMMByidmsQRB9dRkVWLJb8p0/viewform';
+  const STUDENT_FORM_URL = 'https://forms.gle/8nDwdqpbnXuYnhj76';
+
   return (
     <footer className="bg-slate-950 text-slate-400 py-16 border-t border-slate-900">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -393,17 +404,11 @@ function Footer() {
               Building the professional stack for the next generation of corporate leaders. Bridging the gap between ambition and opportunity.
             </p>
             <div className="flex gap-4">
-              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded-full bg-slate-900 flex items-center justify-center hover:bg-peach-500 hover:text-white transition-all">
-                <Twitter size={18} />
-              </a>
               <a href="https://www.linkedin.com/company/peach-stack/" target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded-full bg-slate-900 flex items-center justify-center hover:bg-peach-500 hover:text-white transition-all">
                 <Linkedin size={18} />
               </a>
               <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded-full bg-slate-900 flex items-center justify-center hover:bg-peach-500 hover:text-white transition-all">
                 <Instagram size={18} />
-              </a>
-              <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded-full bg-slate-900 flex items-center justify-center hover:bg-peach-500 hover:text-white transition-all">
-                <Github size={18} />
               </a>
             </div>
           </div>
@@ -412,9 +417,8 @@ function Footer() {
           <div className="md:col-span-2">
             <h4 className="text-sm font-bold uppercase tracking-widest text-white mb-6">Platform</h4>
             <ul className="space-y-4 text-sm">
-              <li><Link to="/apply" className="hover:text-peach-500 transition-colors">Apply</Link></li>
+              <li><a href={STUDENT_FORM_URL} target="_blank" rel="noopener noreferrer" className="hover:text-peach-500 transition-colors">Apply</a></li>
               <li><Link to="/for-employers" className="hover:text-peach-500 transition-colors">For Employers</Link></li>
-              <li><Link to="/quests" className="hover:text-peach-500 transition-colors">Quests</Link></li>
               <li><Link to="/community" className="hover:text-peach-500 transition-colors">Community</Link></li>
             </ul>
           </div>
@@ -422,18 +426,15 @@ function Footer() {
           <div className="md:col-span-2">
             <h4 className="text-sm font-bold uppercase tracking-widest text-white mb-6">Resources</h4>
             <ul className="space-y-4 text-sm">
-              <li><Link to="/contact" className="hover:text-peach-500 transition-colors">Support</Link></li>
               <li><Link to="/blog" className="hover:text-peach-500 transition-colors">Blog</Link></li>
               <li><Link to="/developers" className="hover:text-peach-500 transition-colors">Developers</Link></li>
-              <li><Link to="/feedback" className="hover:text-peach-500 transition-colors">Feedback</Link></li>
             </ul>
           </div>
 
           <div className="md:col-span-2">
             <h4 className="text-sm font-bold uppercase tracking-widest text-white mb-6">Company</h4>
             <ul className="space-y-4 text-sm">
-              <li><a href="/#about" className="hover:text-peach-500 transition-colors">About Us</a></li>
-              <li><Link to="/creators" className="hover:text-peach-500 transition-colors">Creators</Link></li>
+              <li><Link to="/about" className="hover:text-peach-500 transition-colors">About Us</Link></li>
               <li><Link to="/safety" className="hover:text-peach-500 transition-colors">Safety</Link></li>
               <li><Link to="/guidelines" className="hover:text-peach-500 transition-colors">Guidelines</Link></li>
             </ul>
@@ -446,7 +447,6 @@ function Footer() {
             <Link to="/terms" className="hover:text-white transition-colors">Terms</Link>
             <Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link>
             <Link to="/cookies" className="hover:text-white transition-colors">Cookie Settings</Link>
-            <Link to="/company" className="hover:text-white transition-colors">Company Information</Link>
           </div>
           <p className="text-xs text-slate-500">
             &copy; {new Date().getFullYear()} Peachstack. All rights reserved.
@@ -485,6 +485,7 @@ function MainApp() {
 
   return (
     <div className="flex min-h-screen flex-col font-sans">
+      <ScrollToTop />
       <Navbar />
       <main className="flex-grow">
         <Routes>
@@ -492,6 +493,7 @@ function MainApp() {
           <Route path="/student" element={<StudentDashboard />} />
           <Route path="/employer" element={<EmployerDashboard />} />
           <Route path="/workspace" element={<Workspace />} />
+          <Route path="/workspace/login" element={<WorkspaceLogin />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/login" element={<Login />} />
           <Route path="/get-started" element={<GetStarted />} />
@@ -503,15 +505,13 @@ function MainApp() {
           <Route path="/terms" element={<Terms />} />
           <Route path="/cookies" element={<Cookies />} />
           <Route path="/contact" element={<Contact />} />
-          <Route path="/quests" element={<ComingSoon />} />
-          <Route path="/community" element={<ComingSoon />} />
-          <Route path="/blog" element={<ComingSoon />} />
-          <Route path="/developers" element={<ComingSoon />} />
-          <Route path="/feedback" element={<ComingSoon />} />
-          <Route path="/creators" element={<ComingSoon />} />
-          <Route path="/safety" element={<ComingSoon />} />
-          <Route path="/guidelines" element={<ComingSoon />} />
-          <Route path="/company" element={<ComingSoon />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/creators" element={<About />} />
+          <Route path="/community" element={<Community />} />
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/developers" element={<Developers />} />
+          <Route path="/safety" element={<Safety />} />
+          <Route path="/guidelines" element={<Guidelines />} />
           <Route path="*" element={<ComingSoon />} />
         </Routes>
       </main>

@@ -1,20 +1,22 @@
 import { motion } from 'motion/react';
 import { GraduationCap, Building2, ArrowRight, CheckCircle2, Sparkles, Target, Rocket } from 'lucide-react';
 import PeachLogo from '../components/ui/PeachLogo';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
 export default function GetStarted() {
-  const navigate = useNavigate();
   const [hoveredRole, setHoveredRole] = useState<'student' | 'employer' | null>(null);
 
+  const EMPLOYER_FORM_URL = 'https://docs.google.com/forms/d/1uz55KEIkH3XwnVJxvdQgMMByidmsQRB9dRkVWLJb8p0/viewform';
+  const STUDENT_FORM_URL = 'https://forms.gle/8nDwdqpbnXuYnhj76';
+
   const handleSelection = (role: 'student' | 'employer') => {
-    toast.info(`Redirecting you to ${role === 'student' ? 'Student Signup' : 'Employer Onboarding'}...`);
-    setTimeout(() => {
-      navigate(role === 'student' ? '/student/signup' : '/employer/onboarding');
-    }, 800);
+    if (role === 'student') {
+      window.open(STUDENT_FORM_URL, '_blank', 'noopener,noreferrer');
+    } else {
+      window.open(EMPLOYER_FORM_URL, '_blank', 'noopener,noreferrer');
+    }
   };
 
   return (

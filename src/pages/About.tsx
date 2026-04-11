@@ -1,0 +1,173 @@
+import { motion } from 'motion/react';
+import { Linkedin, MapPin, GraduationCap, Briefcase, Code2, BarChart3 } from 'lucide-react';
+
+const founders = [
+  {
+    name: 'Arnav Hazari',
+    title: 'Co-Founder',
+    education: 'Management Information Systems @ University of Georgia (3.9 GPA)',
+    experience: [
+      'AI Development Fellow at Handshake',
+      'Generative AI Specialist at Uber AI Solutions',
+      'Research Intern at University of Colorado Boulder',
+    ],
+    bio: 'Arnav leads product, engineering, and client strategy. He has built data systems, automated financial workflows, and evaluated multimodal AI pipelines at scale. He bridges technical execution and business outcomes.',
+    tech: 'Python, SQL, Streamlit, Pandas, AI/ML pipelines',
+    icon: Code2,
+    color: 'bg-peach-500',
+  },
+  {
+    name: 'Srikar Jujala',
+    title: 'Co-Founder',
+    education: 'Finance + Risk Management & Insurance @ University of Georgia\nMS Business Analytics (incoming) @ University of Georgia',
+    experience: [
+      'AI Development Fellow at Handshake',
+      'Eagle Scout',
+    ],
+    bio: 'Srikar leads operations, finance, and business development. His background spans risk analysis, financial modeling, and clinical operations — he brings the rigor of compliance and the instincts of a builder to everything Peachstack does.',
+    tech: null,
+    icon: BarChart3,
+    color: 'bg-slate-700',
+  },
+];
+
+export default function About() {
+  return (
+    <div className="bg-white min-h-screen">
+      {/* Hero */}
+      <section className="bg-slate-950 py-24 lg:py-32 overflow-hidden relative">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="inline-flex items-center gap-2 rounded-full bg-peach-500/10 px-4 py-1.5 text-sm font-bold text-peach-400 mb-8 border border-peach-500/20">
+              <MapPin size={14} />
+              <span>Atlanta, Georgia</span>
+            </div>
+            <h1 className="font-display text-5xl font-extrabold leading-tight tracking-tight text-white sm:text-6xl lg:text-7xl mb-8">
+              Building the infrastructure for the next generation of{' '}
+              <span className="text-peach-500">professional talent.</span>
+            </h1>
+            <p className="text-xl text-slate-400 leading-relaxed max-w-3xl mx-auto">
+              Peachstack was founded in Atlanta by two builders who saw the same problem from both
+              sides — students who couldn't get experience without experience, and businesses that
+              couldn't find reliable junior talent without spending months training them. We decided
+              to fix both at once.
+            </p>
+          </motion.div>
+        </div>
+        <div className="absolute -right-20 -top-20 h-96 w-96 rounded-full bg-peach-500/10 blur-3xl" />
+        <div className="absolute -bottom-20 -left-20 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
+      </section>
+
+      {/* Founders */}
+      <section className="py-24 bg-slate-50">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="font-display text-4xl font-bold text-slate-900">The Team</h2>
+            <p className="mt-4 text-lg text-slate-600">
+              Two builders. One mission.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {founders.map((founder, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="bg-white rounded-[2.5rem] p-10 shadow-sm border border-slate-100 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start gap-6 mb-8">
+                  <div className={`h-16 w-16 rounded-2xl ${founder.color} flex items-center justify-center text-white shadow-lg shrink-0`}>
+                    <founder.icon size={28} />
+                  </div>
+                  <div>
+                    <h3 className="font-display text-2xl font-bold text-slate-900">{founder.name}</h3>
+                    <p className="text-peach-500 font-bold text-sm uppercase tracking-wider mt-1">{founder.title}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">
+                      <GraduationCap size={14} />
+                      Education
+                    </div>
+                    {founder.education.split('\n').map((line, j) => (
+                      <p key={j} className="text-slate-700 text-sm leading-relaxed">{line}</p>
+                    ))}
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">
+                      <Briefcase size={14} />
+                      Previously
+                    </div>
+                    <ul className="space-y-1">
+                      {founder.experience.map((exp, j) => (
+                        <li key={j} className="text-slate-700 text-sm flex items-start gap-2">
+                          <span className="text-peach-400 mt-1.5 shrink-0">•</span>
+                          {exp}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <p className="text-slate-600 leading-relaxed">{founder.bio}</p>
+
+                  {founder.tech && (
+                    <div className="bg-slate-50 rounded-2xl p-4">
+                      <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Tech</p>
+                      <p className="text-slate-700 text-sm font-medium">{founder.tech}</p>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Closing Statement */}
+      <section className="py-24 bg-white">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center"
+          >
+            <p className="text-2xl font-bold text-slate-900 leading-relaxed mb-6">
+              We are not a job board. We are not a bootcamp.
+            </p>
+            <p className="text-xl text-slate-600 leading-relaxed mb-6">
+              We are the operating layer between ambition and opportunity — built by people who have
+              worked at the companies you want to work at, and who know exactly what it takes to get
+              there.
+            </p>
+            <p className="text-lg font-bold text-peach-500">
+              Based in Atlanta. Building nationally.
+            </p>
+
+            <div className="mt-12 flex justify-center">
+              <a
+                href="https://www.linkedin.com/company/peach-stack"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-8 py-4 text-base font-bold text-white hover:bg-slate-800 transition-all active:scale-95"
+              >
+                <Linkedin size={18} />
+                Follow us on LinkedIn
+              </a>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+    </div>
+  );
+}

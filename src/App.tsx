@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, GraduationCap, ChevronDown, User, Settings as SettingsIcon, LogOut, Building2, Mail, Linkedin, Instagram } from 'lucide-react';
+import { Menu, X, GraduationCap, ChevronDown, User, Settings as SettingsIcon, LogOut, Building2, Mail, Linkedin } from 'lucide-react';
 import PeachLogo from './components/ui/PeachLogo';
 import ScrollToTop from './components/ScrollToTop';
 import { useState, useEffect } from 'react';
@@ -410,9 +410,6 @@ function Footer() {
               <a href="https://www.linkedin.com/company/peach-stack/" target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded-full bg-slate-900 flex items-center justify-center hover:bg-peach-500 hover:text-white transition-all">
                 <Linkedin size={18} />
               </a>
-              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded-full bg-slate-900 flex items-center justify-center hover:bg-peach-500 hover:text-white transition-all">
-                <Instagram size={18} />
-              </a>
             </div>
           </div>
 
@@ -422,14 +419,13 @@ function Footer() {
             <ul className="space-y-4 text-sm">
               <li><a href={STUDENT_FORM_URL} target="_blank" rel="noopener noreferrer" className="hover:text-peach-500 transition-colors">Apply</a></li>
               <li><Link to="/for-employers" className="hover:text-peach-500 transition-colors">For Employers</Link></li>
-              <li><Link to="/community" className="hover:text-peach-500 transition-colors">Community</Link></li>
+              <li><Link to="/contact" className="hover:text-peach-500 transition-colors">Contact</Link></li>
             </ul>
           </div>
 
           <div className="md:col-span-2">
             <h4 className="text-sm font-bold uppercase tracking-widest text-white mb-6">Resources</h4>
             <ul className="space-y-4 text-sm">
-              <li><Link to="/blog" className="hover:text-peach-500 transition-colors">Blog</Link></li>
               <li><Link to="/developers" className="hover:text-peach-500 transition-colors">Developers</Link></li>
             </ul>
           </div>

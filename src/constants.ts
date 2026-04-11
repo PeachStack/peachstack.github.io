@@ -1,6 +1,10 @@
 import { Project, StudentProfile } from './types';
 
-export const MOCK_PROJECTS: Project[] = [
+// Mock data used for development/demo purposes only.
+// These are placeholder entries and should never render on the live site.
+const DEV_MODE = import.meta.env.DEV;
+
+export const MOCK_PROJECTS: Project[] = DEV_MODE ? [
   {
     id: '1',
     title: 'Q2 Market Competitor Audit',
@@ -34,9 +38,9 @@ export const MOCK_PROJECTS: Project[] = [
     duration: '3 Weeks',
     skills: ['Social Media', 'Content Strategy', 'Trends']
   }
-];
+] : [];
 
-export const MOCK_STUDENT: StudentProfile = {
+export const MOCK_STUDENT: StudentProfile = DEV_MODE ? {
   name: 'Alex Rivera',
   university: 'Stanford University',
   year: 1,
@@ -47,5 +51,13 @@ export const MOCK_STUDENT: StudentProfile = {
     { id: 'b2', name: 'Excel Certified', icon: 'Table', date: '2026-02-10' },
     { id: 'b3', name: 'First Project', icon: 'Rocket', date: '2026-03-01' }
   ],
+  projects: []
+} : {
+  name: '',
+  university: '',
+  year: 0,
+  bio: '',
+  stackPoints: 0,
+  badges: [],
   projects: []
 };

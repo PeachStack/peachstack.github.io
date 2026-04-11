@@ -16,9 +16,7 @@ const __dirname = path.dirname(__filename);
 const JWT_SECRET = process.env.JWT_SECRET || "peachstack-super-secret-key";
 const PORT = Number(process.env.PORT) || 3000;
 
-async function startServer() {
-  await initDb();
-
+export async function buildApp() {
   const app = express();
 
   app.use(helmet());
@@ -676,14 +674,14 @@ async function startServer() {
     if (!title || !description) return res.status(400).json({ message: "Title and description required" });
     const id = crypto.randomUUID();
     await db.execute({
-      sql: "INSERT INTO projects (id, title, description, employer_id, skills_required, deadline, compensation, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-      args: [id, title, description, req.user.id, JSON.stringify(skills_required || []), deadline || null, compensation || null, status || "open"],
+      sql: "INSERT INTO projects (id, title, description, employer_id, skills_required, deadline, compensation, status, target_role) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      args: [id, title, description, req.user.id, JSON.stringify(skills_required || []), deadline || null, compensation || null, status || "open", target_role || "all"],
     });
     res.status(201).json({ id, message: "Project created" });
   });
 
   app.patch("/api/admin/projects/:id", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
-    const { title, description, status, skills_required, deadline, compensation } = req.body;
+    const { title, description, status, skills_required, deadline, compensation, target_role } = req.body;
     await db.execute({
       sql: `UPDATE projects SET
         title = COALESCE(?, title),
@@ -691,9 +689,10 @@ async function startServer() {
         status = COALESCE(?, status),
         skills_required = COALESCE(?, skills_required),
         deadline = COALESCE(?, deadline),
-        compensation = COALESCE(?, compensation)
+        compensation = COALESCE(?, compensation),
+        target_role = COALESCE(?, target_role)
         WHERE id = ?`,
-      args: [title || null, description || null, status || null, skills_required ? JSON.stringify(skills_required) : null, deadline !== undefined ? deadline : null, compensation !== undefined ? compensation : null, req.params.id],
+      args: [title || null, description || null, status || null, skills_required ? JSON.stringify(skills_required) : null, deadline !== undefined ? deadline : null, compensation !== undefined ? compensation : null, target_role || null, req.params.id],
     });
     res.json({ message: "Updated" });
   });
@@ -1160,6 +1159,13 @@ async function startServer() {
     });
     res.json({ message: "Profile updated" });
   });
+
+  return app;
+}
+
+async function startServer() {
+  await initDb();
+  const app = await buildApp();
 
   // ─── Vite / Static serving ────────────────────────────────────────────────────
   if (process.env.NODE_ENV !== "production") {

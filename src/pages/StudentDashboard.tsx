@@ -1,16 +1,9 @@
 import { motion } from 'motion/react';
 import { MOCK_STUDENT } from '../constants';
-import { Badge as BadgeIcon, Brain, Table, Rocket, CheckCircle2, Clock, Lock, ArrowRight, GraduationCap, Trophy, Briefcase, ChevronRight, Edit3, Save } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { Briefcase, ChevronRight, Edit3, Save, Trophy } from 'lucide-react';
 import { useState, FormEvent, useEffect } from 'react';
 import Modal from '../components/ui/Modal';
 import { toast } from 'sonner';
-
-const iconMap: Record<string, any> = {
-  Brain: Brain,
-  Table: Table,
-  Rocket: Rocket,
-};
 
 export default function StudentDashboard() {
   const [student, setStudent] = useState(MOCK_STUDENT);
@@ -171,82 +164,45 @@ export default function StudentDashboard() {
           </form>
         </Modal>
 
-        <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
-          {/* Left Column: Projects */}
-          <div className="lg:col-span-2 space-y-8">
+        <div className="mt-8 grid grid-cols-1 gap-8">
+          {/* Projects */}
+          <div className="space-y-8">
             <section>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="font-display text-2xl font-bold text-slate-900">Project History</h2>
                 <button className="text-sm font-bold text-peach-600 hover:underline">Find New Projects</button>
               </div>
               <div className="space-y-4">
-                {student.projects.map((project) => (
-                  <div key={project.id} className="flex flex-col gap-4 rounded-2xl border border-slate-100 bg-white p-6 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-white">
-                        <Briefcase size={24} />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-slate-900">{project.title}</h3>
-                        <p className="text-sm text-slate-500">{project.company} • {project.type}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-6">
-                      <div className="text-right hidden sm:block">
-                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Status</p>
-                        <p className="text-sm font-bold text-green-600">{project.status}</p>
-                      </div>
-                      <button className="rounded-lg bg-slate-50 p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900">
-                        <ChevronRight size={20} />
-                      </button>
-                    </div>
+                {student.projects.length === 0 ? (
+                  <div className="rounded-2xl border border-slate-100 bg-white p-10 text-center">
+                    <Briefcase size={36} className="mx-auto text-slate-300 mb-3" />
+                    <p className="font-medium text-slate-500">No projects yet</p>
+                    <p className="text-sm text-slate-400 mt-1">Projects you complete will appear here.</p>
                   </div>
-                ))}
-              </div>
-            </section>
-          </div>
-
-          {/* Right Column: Badges & Stats */}
-          <div className="space-y-8">
-            <section className="rounded-3xl bg-slate-900 p-8 text-white shadow-xl">
-              <h2 className="font-display text-xl font-bold">Verified Badges</h2>
-              <div className="mt-6 grid grid-cols-3 gap-4">
-                {student.badges.map((badge) => {
-                  const Icon = iconMap[badge.icon] || BadgeIcon;
-                  return (
-                    <div key={badge.id} className="group flex flex-col items-center gap-2">
-                      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 text-peach-400 transition-transform group-hover:scale-110">
-                        <Icon size={32} />
+                ) : (
+                  student.projects.map((project) => (
+                    <div key={project.id} className="flex flex-col gap-4 rounded-2xl border border-slate-100 bg-white p-6 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-white">
+                          <Briefcase size={24} />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-slate-900">{project.title}</h3>
+                          <p className="text-sm text-slate-500">{project.company} • {project.type}</p>
+                        </div>
                       </div>
-                      <span className="text-center text-[10px] font-bold uppercase tracking-wider opacity-70">{badge.name}</span>
-                    </div>
-                  );
-                })}
-              </div>
-              <button className="mt-8 w-full rounded-xl bg-white/10 py-3 text-sm font-bold transition-colors hover:bg-white/20">
-                View Badge Vault
-              </button>
-            </section>
-
-            <section className="rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
-              <h2 className="font-display text-xl font-bold text-slate-900">Upcoming Milestones</h2>
-              <div className="mt-6 space-y-6">
-                {[
-                  { label: 'Logic Assessment II', points: '+250 pts', date: 'Mar 28' },
-                  { label: 'Excel Certification', points: '+500 pts', date: 'Apr 02' },
-                  { label: 'First Paid Project', points: 'Unlock', date: 'Soon' },
-                ].map((m, i) => (
-                  <div key={i} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-2 w-2 rounded-full bg-peach-500" />
-                      <div>
-                        <p className="text-sm font-bold text-slate-900">{m.label}</p>
-                        <p className="text-xs text-slate-500">{m.date}</p>
+                      <div className="flex items-center gap-6">
+                        <div className="text-right hidden sm:block">
+                          <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Status</p>
+                          <p className="text-sm font-bold text-green-600">{project.status}</p>
+                        </div>
+                        <button className="rounded-lg bg-slate-50 p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900">
+                          <ChevronRight size={20} />
+                        </button>
                       </div>
                     </div>
-                    <span className="text-xs font-bold text-peach-600">{m.points}</span>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </section>
           </div>

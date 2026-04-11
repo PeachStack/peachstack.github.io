@@ -47,17 +47,5 @@ export const MOCK_STUDENT: StudentProfile = {
     { id: 'b2', name: 'Excel Certified', icon: 'Table', date: '2026-02-10' },
     { id: 'b3', name: 'First Project', icon: 'Rocket', date: '2026-03-01' }
   ],
-  projects: [
-    {
-      id: 'p1',
-      title: 'Local Business SEO Audit',
-      company: 'Main St. Bakery',
-      description: 'Improved search visibility for a local business.',
-      type: 'Strategy',
-      status: 'Completed',
-      compensation: 'Unpaid (Learning)',
-      duration: '1 Week',
-      skills: ['SEO', 'Local Marketing']
-    }
-  ]
+  projects: []
 };

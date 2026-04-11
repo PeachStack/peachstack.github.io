@@ -49,6 +49,7 @@ import AdminAnalytics from './pages/admin/Analytics';
 import AdminSettings from './pages/admin/Settings';
 import AdminTeam from './pages/admin/Team';
 import AdminMessages from './pages/admin/Messages';
+import AdminCalendar from './pages/admin/Calendar';
 import WorkspaceMessages from './pages/workspace/Messages';
 
 function Navbar() {
@@ -481,6 +482,7 @@ function MainApp() {
           <Route path="settings" element={<AdminSettings />} />
           <Route path="team" element={<AdminTeam />} />
           <Route path="messages" element={<AdminMessages />} />
+          <Route path="calendar" element={<AdminCalendar />} />
         </Route>
       </Routes>
     );

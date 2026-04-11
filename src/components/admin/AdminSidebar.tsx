@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, ListTodo, Briefcase, CalendarDays, Mail, BarChart3, Settings, ExternalLink, LogOut, X, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Users, ListTodo, Briefcase, CalendarDays, Mail, BarChart3, Settings, ExternalLink, LogOut, X, MessageSquare, Calendar } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { apiUrl } from '../../lib/api';
 import { useState, useEffect } from 'react';
@@ -9,6 +9,7 @@ const BASE_NAV = [
   { to: '/admin/interns', icon: Users, label: 'Interns' },
   { to: '/admin/tasks', icon: ListTodo, label: 'Tasks' },
   { to: '/admin/projects', icon: Briefcase, label: 'Projects' },
+  { to: '/admin/calendar', icon: Calendar, label: 'Calendar' },
   { to: '/admin/cohorts', icon: CalendarDays, label: 'Cohorts' },
   { to: '/admin/communications', icon: Mail, label: 'Communications' },
   { to: '/admin/analytics', icon: BarChart3, label: 'Analytics' },

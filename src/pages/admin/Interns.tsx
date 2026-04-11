@@ -57,7 +57,19 @@ function CreateInternModal({ onClose, onCreated }: { onClose: () => void; onCrea
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Role / Track</label>
-            <input type="text" value={internRole} onChange={e => setInternRole(e.target.value)} className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent" placeholder="e.g. Technology, Marketing, Sales" />
+            <select value={internRole} onChange={e => setInternRole(e.target.value)} className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent bg-white">
+              <option value="">Select a role...</option>
+              <option value="Technology">Technology</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Sales">Sales</option>
+              <option value="Operations">Operations</option>
+              <option value="Design">Design</option>
+              <option value="Finance">Finance</option>
+              <option value="Strategy">Strategy</option>
+              <option value="Data & Analytics">Data & Analytics</option>
+              <option value="Content & Copywriting">Content & Copywriting</option>
+              <option value="Social Media">Social Media</option>
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Temporary Password</label>

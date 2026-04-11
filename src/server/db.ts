@@ -161,6 +161,33 @@ export async function initDb() {
       event TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS messages (
+      id TEXT PRIMARY KEY,
+      sender_id TEXT NOT NULL,
+      recipient_id TEXT NOT NULL,
+      subject TEXT,
+      body TEXT NOT NULL,
+      read INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(sender_id) REFERENCES users(id),
+      FOREIGN KEY(recipient_id) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS message_threads (
+      id TEXT PRIMARY KEY,
+      participant_one TEXT NOT NULL,
+      participant_two TEXT NOT NULL,
+      last_message_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(participant_one) REFERENCES users(id),
+      FOREIGN KEY(participant_two) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS platform_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   // Seed superadmin unconditionally on every boot
@@ -173,5 +200,11 @@ export async function initDb() {
   await db.execute({
     sql: `UPDATE users SET password = ?, role = 'superadmin', is_active = 1 WHERE email = 'peachstackadmin@gmail.com'`,
     args: [adminPassword],
+  });
+
+  // Seed default platform settings
+  await db.execute({
+    sql: `INSERT OR IGNORE INTO platform_settings (key, value) VALUES ('allow_intern_to_intern_messaging', 'false')`,
+    args: [],
   });
 }

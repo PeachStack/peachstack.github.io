@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
-import { CheckCircle2, Clock, Briefcase, Calendar, ChevronRight, Layout, ListTodo, MessageSquare, Star, Zap } from 'lucide-react';
+import { CheckCircle2, Clock, Briefcase, Calendar, ChevronRight, Layout, ListTodo, Zap, MessageSquare } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { apiUrl } from '../lib/api';
 
@@ -32,17 +33,40 @@ export default function Workspace() {
   const [tasks, setTasks] = useState<ApiTask[]>([]);
   const [userName, setUserName] = useState('Student');
   const [loadingTasks, setLoadingTasks] = useState(true);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const savedName = localStorage.getItem('peachstack_user_name');
     if (savedName) setUserName(savedName.split(' ')[0]);
+
+    // Redirect admins to their own dashboard
+    fetch(apiUrl('/api/me'), { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.user && (data.user.role === 'admin' || data.user.role === 'superadmin' || data.user.isAdmin)) {
+          navigate('/admin/dashboard', { replace: true });
+          return;
+        }
+      })
+      .catch(() => {});
 
     fetch(apiUrl('/api/tasks/mine'), { credentials: 'include' })
       .then(r => r.ok ? r.json() : [])
       .then(data => setTasks(Array.isArray(data) ? data : []))
       .catch(() => setTasks([]))
       .finally(() => setLoadingTasks(false));
-  }, []);
+
+    const fetchUnread = () => {
+      fetch(apiUrl('/api/messages/unread/count'), { credentials: 'include' })
+        .then(r => r.ok ? r.json() : { count: 0 })
+        .then(data => setUnreadMessages(data.count || 0))
+        .catch(() => {});
+    };
+    fetchUnread();
+    const msgInterval = setInterval(fetchUnread, 30000);
+    return () => clearInterval(msgInterval);
+  }, [navigate]);
 
   const updateTaskStatus = async (id: string, status: string) => {
     await fetch(apiUrl(`/api/tasks/${id}`), {
@@ -70,6 +94,17 @@ export default function Workspace() {
             <p className="text-slate-500">Here's what's on your stack for today.</p>
           </div>
           <div className="flex items-center gap-3">
+            <Link
+              to="/workspace/messages"
+              className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm border border-slate-100 text-slate-500 hover:text-peach-500 transition-colors"
+            >
+              <MessageSquare size={22} />
+              {unreadMessages > 0 && (
+                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  {unreadMessages > 9 ? '9+' : unreadMessages}
+                </span>
+              )}
+            </Link>
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm border border-slate-100 text-peach-500">
               <Zap size={24} />
             </div>
@@ -232,31 +267,6 @@ export default function Workspace() {
               </div>
               <button className="mt-4 w-full rounded-xl bg-slate-50 py-3 text-xs font-bold text-slate-600 hover:bg-slate-100">
                 Open Calendar
-              </button>
-            </section>
-
-            {/* Recent Feedback */}
-            <section className="rounded-3xl bg-slate-900 p-8 text-white shadow-xl">
-              <h2 className="font-display text-lg font-bold flex items-center gap-2">
-                <MessageSquare className="text-peach-400" size={18} />
-                Recent Feedback
-              </h2>
-              <div className="mt-6 space-y-6">
-                <div className="rounded-2xl bg-white/5 p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex text-peach-400">
-                      {[1, 2, 3, 4, 5].map(i => <Star key={i} size={12} fill="currentColor" />)}
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">Nike Strategy</span>
-                  </div>
-                  <p className="text-xs text-slate-300 italic leading-relaxed">
-                    "Excellent attention to detail on the brand audit. The data visualization was particularly impressive."
-                  </p>
-                  <p className="mt-3 text-[10px] font-bold text-peach-400 uppercase">— Sarah M., Project Lead</p>
-                </div>
-              </div>
-              <button className="mt-6 w-full rounded-xl bg-white/10 py-3 text-xs font-bold hover:bg-white/20">
-                View All Feedback
               </button>
             </section>
           </div>

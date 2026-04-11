@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
-import { CheckCircle2, Clock, Briefcase, Calendar, ChevronRight, Layout, ListTodo, MessageSquare } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { CheckCircle2, Clock, Calendar, ListTodo, MessageSquare, Save } from 'lucide-react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { apiUrl } from '../lib/api';
@@ -15,25 +15,133 @@ interface ApiTask {
   tags: string[];
 }
 
-interface ActiveProject {
+interface CalendarEvent {
   id: string;
   title: string;
-  company: string;
-  progress: number;
-  nextDeadline: string;
-  tasksRemaining: number;
+  description?: string;
+  event_date: string;
+  event_time?: string;
 }
 
-const MOCK_ACTIVE_PROJECTS: ActiveProject[] = [
-  { id: 'p1', title: 'Market Competitor Audit', company: 'Goldman Sachs', progress: 65, nextDeadline: 'Mar 26', tasksRemaining: 4 },
-  { id: 'p2', title: 'Gen Z Brand Strategy', company: 'Nike', progress: 30, nextDeadline: 'Apr 02', tasksRemaining: 8 },
-];
+function ProfileSetupModal({ onComplete }: { onComplete: (name: string) => void }) {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [university, setUniversity] = useState('');
+  const [bio, setBio] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!firstName.trim() || !lastName.trim() || !university.trim()) {
+      setError('Please fill out all required fields.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    const fullName = `${firstName.trim()} ${lastName.trim()}`;
+    try {
+      const res = await fetch(apiUrl('/api/workspace/profile'), {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: fullName, university: university.trim(), bio: bio.trim() || null }),
+      });
+      if (!res.ok) throw new Error('Failed to save profile');
+      localStorage.setItem('peachstack_user_name', fullName);
+      onComplete(firstName.trim());
+    } catch {
+      setError('Could not save your profile. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-8"
+      >
+        <div className="text-center mb-8">
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-peach-100 text-peach-600 mb-4">
+            <span className="text-2xl">👋</span>
+          </div>
+          <h2 className="font-display text-2xl font-bold text-slate-900">Welcome to Peachstack!</h2>
+          <p className="text-slate-500 text-sm mt-2">Let's set up your profile before you get started.</p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">First Name <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                value={firstName}
+                onChange={e => setFirstName(e.target.value)}
+                required
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent"
+                placeholder="Jane"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Last Name <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                value={lastName}
+                onChange={e => setLastName(e.target.value)}
+                required
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent"
+                placeholder="Smith"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">University / College <span className="text-red-500">*</span></label>
+            <input
+              type="text"
+              value={university}
+              onChange={e => setUniversity(e.target.value)}
+              required
+              className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent"
+              placeholder="e.g. University of Michigan"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Bio <span className="text-slate-400 font-normal">(optional)</span>
+            </label>
+            <textarea
+              value={bio}
+              onChange={e => setBio(e.target.value)}
+              rows={3}
+              className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent resize-none"
+              placeholder="A short intro about yourself, your major, or what you're excited to work on..."
+            />
+          </div>
+          {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{error}</p>}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-peach-500 text-sm font-bold text-white hover:bg-peach-600 transition-colors disabled:opacity-50 mt-2"
+          >
+            <Save size={16} />
+            {loading ? 'Saving...' : 'Save & Continue'}
+          </button>
+        </form>
+      </motion.div>
+    </div>
+  );
+}
 
 export default function Workspace() {
   const [tasks, setTasks] = useState<ApiTask[]>([]);
-  const [userName, setUserName] = useState('Student');
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [userName, setUserName] = useState('');
   const [loadingTasks, setLoadingTasks] = useState(true);
+  const [loadingCalendar, setLoadingCalendar] = useState(true);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -51,11 +159,35 @@ export default function Workspace() {
       })
       .catch(() => {});
 
+    // Check if profile setup is needed (no university set)
+    fetch(apiUrl('/api/workspace/profile'), { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          // Sync the display name from server
+          if (data.name) {
+            setUserName(data.name.split(' ')[0]);
+            localStorage.setItem('peachstack_user_name', data.name);
+          }
+          // Show setup modal if university not set
+          if (!data.university) {
+            setShowProfileSetup(true);
+          }
+        }
+      })
+      .catch(() => {});
+
     fetch(apiUrl('/api/workspace/tasks'), { credentials: 'include' })
       .then(r => r.ok ? r.json() : [])
       .then(data => setTasks(Array.isArray(data) ? data : []))
       .catch(() => setTasks([]))
       .finally(() => setLoadingTasks(false));
+
+    fetch(apiUrl('/api/workspace/calendar'), { credentials: 'include' })
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setCalendarEvents(Array.isArray(data) ? data : []))
+      .catch(() => setCalendarEvents([]))
+      .finally(() => setLoadingCalendar(false));
 
     const fetchUnread = () => {
       fetch(apiUrl('/api/messages/unread/count'), { credentials: 'include' })
@@ -84,13 +216,35 @@ export default function Workspace() {
     return 'bg-blue-50 text-blue-600';
   };
 
+  const formatEventTime = (time?: string) => {
+    if (!time) return '';
+    const [h, m] = time.split(':').map(Number);
+    const suffix = h >= 12 ? 'PM' : 'AM';
+    const displayH = h % 12 || 12;
+    return `${displayH}:${String(m).padStart(2, '0')} ${suffix}`;
+  };
+
+  const upcomingEvents = calendarEvents
+    .filter(e => new Date(e.event_date) >= new Date(new Date().toDateString()))
+    .slice(0, 5);
+
   return (
     <div className="min-h-screen bg-slate-50 pb-20 pt-8">
+      {showProfileSetup && (
+        <ProfileSetupModal
+          onComplete={(firstName) => {
+            setUserName(firstName);
+            setShowProfileSetup(false);
+          }}
+        />
+      )}
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Welcome Header */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="font-display text-3xl font-bold text-slate-900">Welcome back, {userName}!</h1>
+            <h1 className="font-display text-3xl font-bold text-slate-900">
+              Welcome back{userName ? `, ${userName}` : ''}!
+            </h1>
             <p className="text-slate-500">Here's what's on your stack for today.</p>
           </div>
           <div className="flex items-center gap-3">
@@ -109,59 +263,8 @@ export default function Workspace() {
         </div>
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-          {/* Main Content: Tasks & Projects */}
+          {/* Main Content: Tasks */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Active Projects Section */}
-            <section>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="font-display text-xl font-bold text-slate-900 flex items-center gap-2">
-                  <Layout className="text-peach-500" size={20} />
-                  Active Projects
-                </h2>
-                <button className="text-sm font-bold text-peach-600 hover:underline">View All</button>
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {MOCK_ACTIVE_PROJECTS.map((project) => (
-                  <motion.div
-                    key={project.id}
-                    whileHover={{ y: -4 }}
-                    className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:shadow-md"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white">
-                        <Briefcase size={20} />
-                      </div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                        Due {project.nextDeadline}
-                      </span>
-                    </div>
-                    <h3 className="font-bold text-slate-900">{project.title}</h3>
-                    <p className="text-sm text-slate-500 mb-6">{project.company}</p>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs font-bold">
-                        <span className="text-slate-400">Progress</span>
-                        <span className="text-peach-600">{project.progress}%</span>
-                      </div>
-                      <div className="h-2 w-full rounded-full bg-slate-100">
-                        <div 
-                          className="h-full rounded-full bg-peach-500 transition-all duration-500" 
-                          style={{ width: `${project.progress}%` }}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="mt-6 flex items-center justify-between border-t border-slate-50 pt-4">
-                      <span className="text-xs font-medium text-slate-500">{project.tasksRemaining} tasks left</span>
-                      <button className="text-xs font-bold text-slate-900 flex items-center gap-1 hover:text-peach-500">
-                        Open Workspace <ChevronRight size={14} />
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </section>
-
             {/* Tasks Section */}
             <section>
               <div className="flex items-center justify-between mb-6">
@@ -193,12 +296,12 @@ export default function Workspace() {
                           isCompleted ? "opacity-60 grayscale" : "hover:shadow-sm"
                         )}
                       >
-                        <button 
+                        <button
                           onClick={() => updateTaskStatus(task.id, isCompleted ? 'open' : 'in_review')}
                           className={cn(
                             "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-2 transition-all",
-                            isCompleted 
-                              ? "bg-green-500 border-green-500 text-white" 
+                            isCompleted
+                              ? "bg-green-500 border-green-500 text-white"
                               : "border-slate-200 hover:border-peach-500"
                           )}
                         >
@@ -229,38 +332,40 @@ export default function Workspace() {
             </section>
           </div>
 
-          {/* Sidebar: Schedule & Updates */}
+          {/* Sidebar: Schedule */}
           <div className="space-y-8">
-            {/* Calendar Widget */}
             <section className="rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="font-display text-lg font-bold text-slate-900 flex items-center gap-2">
                   <Calendar className="text-peach-500" size={18} />
                   Schedule
                 </h2>
-                <span className="text-xs font-bold text-slate-400">Mar 24</span>
               </div>
-              <div className="space-y-6">
-                {[
-                  { time: '10:00 AM', event: 'Team Sync: Nike Strategy', type: 'Meeting' },
-                  { time: '02:00 PM', event: 'Excel Workshop', type: 'Training' },
-                  { time: '04:30 PM', event: 'Project Review', type: 'Review' },
-                ].map((item, i) => (
-                  <div key={i} className="flex gap-4">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 w-16 pt-1">
-                      {item.time}
+              {loadingCalendar ? (
+                <div className="flex items-center justify-center py-6">
+                  <div className="h-5 w-5 border-4 border-peach-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : upcomingEvents.length === 0 ? (
+                <div className="text-center py-6 text-slate-400">
+                  <Calendar size={24} className="mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">No upcoming events</p>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  {upcomingEvents.map((event) => (
+                    <div key={event.id} className="flex gap-4">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 w-16 pt-1 shrink-0">
+                        {event.event_time ? formatEventTime(event.event_time) : new Date(event.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </div>
+                      <div className="flex-grow pb-4 border-l-2 border-slate-50 pl-4 relative">
+                        <div className="absolute -left-[5px] top-1.5 h-2 w-2 rounded-full bg-peach-500" />
+                        <p className="text-sm font-bold text-slate-900">{event.title}</p>
+                        {event.description && <p className="text-xs text-slate-500">{event.description}</p>}
+                      </div>
                     </div>
-                    <div className="flex-grow pb-4 border-l-2 border-slate-50 pl-4 relative">
-                      <div className="absolute -left-[5px] top-1.5 h-2 w-2 rounded-full bg-peach-500" />
-                      <p className="text-sm font-bold text-slate-900">{item.event}</p>
-                      <p className="text-xs text-slate-500">{item.type}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <button className="mt-4 w-full rounded-xl bg-slate-50 py-3 text-xs font-bold text-slate-600 hover:bg-slate-100">
-                Open Calendar
-              </button>
+                  ))}
+                </div>
+              )}
             </section>
           </div>
         </div>

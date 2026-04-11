@@ -12,11 +12,24 @@ export default function AdminLayout() {
   const [networkError, setNetworkError] = useState(false);
   const navigate = useNavigate();
 
-  const checkAuth = useCallback(async () => {
+  const checkAuth = useCallback(async (attempt = 0) => {
     setLoading(true);
-    setNetworkError(false);
+    if (attempt === 0) setNetworkError(false);
+    let isRetrying = false;
     try {
-      const res = await fetch(apiUrl('/api/me'), { credentials: 'include' });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      let res: Response;
+      try {
+        res = await fetch(apiUrl('/api/me'), { credentials: 'include', signal: controller.signal });
+      } finally {
+        clearTimeout(timeoutId);
+      }
+      // If response is not JSON (e.g. HTML page served instead of API), treat as network error
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error('Non-JSON response from API');
+      }
       const data = await res.json();
       if (!res.ok || !data.user || (!data.user.isAdmin && data.user.role !== 'admin' && data.user.role !== 'superadmin')) {
         // Actual auth failure — redirect to login
@@ -25,10 +38,16 @@ export default function AdminLayout() {
       }
       setAdmin({ name: data.user.name });
     } catch {
+      // Retry once after 2 s before showing the error screen
+      if (attempt === 0) {
+        isRetrying = true;
+        setTimeout(() => checkAuth(1), 2000);
+        return;
+      }
       // Network error — show retry screen, do NOT redirect to login
       setNetworkError(true);
     } finally {
-      setLoading(false);
+      if (!isRetrying) setLoading(false);
     }
   }, [navigate]);
 

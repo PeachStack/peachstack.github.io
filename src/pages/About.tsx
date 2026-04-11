@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Linkedin, MapPin, GraduationCap, Briefcase, Code2, BarChart3 } from 'lucide-react';
+import { Linkedin, MapPin, GraduationCap, Briefcase } from 'lucide-react';
 
 const founders = [
   {
@@ -13,8 +13,7 @@ const founders = [
     ],
     bio: 'Arnav leads product, engineering, and client strategy. He has built data systems, automated financial workflows, and evaluated multimodal AI pipelines at scale. He bridges technical execution and business outcomes.',
     tech: 'Python, SQL, Streamlit, Pandas, AI/ML pipelines',
-    icon: Code2,
-    color: 'bg-peach-500',
+    avatar: 'https://github.com/user-attachments/assets/ce22e509-0c1b-44ee-99fa-e114057e7555',
   },
   {
     name: 'Srikar Jujala',
@@ -26,8 +25,7 @@ const founders = [
     ],
     bio: 'Srikar leads operations, finance, and business development. His background spans risk analysis, financial modeling, and clinical operations — he brings the rigor of compliance and the instincts of a builder to everything Peachstack does.',
     tech: null,
-    icon: BarChart3,
-    color: 'bg-slate-700',
+    avatar: 'https://github.com/user-attachments/assets/7e5d08d8-304c-4f44-bb02-224924aa690c',
   },
 ];
 
@@ -83,8 +81,8 @@ export default function About() {
                 className="bg-white rounded-[2.5rem] p-10 shadow-sm border border-slate-100 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start gap-6 mb-8">
-                  <div className={`h-16 w-16 rounded-2xl ${founder.color} flex items-center justify-center text-white shadow-lg shrink-0`}>
-                    <founder.icon size={28} />
+                  <div className="h-16 w-16 rounded-2xl overflow-hidden shadow-lg shrink-0 bg-slate-100">
+                    <img src={founder.avatar} alt={founder.name} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
                   </div>
                   <div>
                     <h3 className="font-display text-2xl font-bold text-slate-900">{founder.name}</h3>

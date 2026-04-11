@@ -48,6 +48,8 @@ import AdminCommunications from './pages/admin/Communications';
 import AdminAnalytics from './pages/admin/Analytics';
 import AdminSettings from './pages/admin/Settings';
 import AdminTeam from './pages/admin/Team';
+import AdminMessages from './pages/admin/Messages';
+import WorkspaceMessages from './pages/workspace/Messages';
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -478,6 +480,7 @@ function MainApp() {
           <Route path="analytics" element={<AdminAnalytics />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="team" element={<AdminTeam />} />
+          <Route path="messages" element={<AdminMessages />} />
         </Route>
       </Routes>
     );
@@ -494,6 +497,7 @@ function MainApp() {
           <Route path="/employer" element={<EmployerDashboard />} />
           <Route path="/workspace" element={<Workspace />} />
           <Route path="/workspace/login" element={<WorkspaceLogin />} />
+          <Route path="/workspace/messages" element={<WorkspaceMessages />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/login" element={<Login />} />
           <Route path="/get-started" element={<GetStarted />} />

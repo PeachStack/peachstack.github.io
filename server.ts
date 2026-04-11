@@ -638,6 +638,200 @@ async function startServer() {
     res.json((result.rows as any[]).map((p) => ({ ...p, skills_required: JSON.parse(p.skills_required || "[]") })));
   });
 
+  app.post("/api/admin/projects", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
+    const { title, description, skills_required, deadline, compensation, status, target_role } = req.body;
+    if (!title || !description) return res.status(400).json({ message: "Title and description required" });
+    const id = crypto.randomUUID();
+    await db.execute({
+      sql: "INSERT INTO projects (id, title, description, employer_id, skills_required, deadline, compensation, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      args: [id, title, description, req.user.id, JSON.stringify(skills_required || []), deadline || null, compensation || null, status || "open"],
+    });
+    res.status(201).json({ id, message: "Project created" });
+  });
+
+  app.patch("/api/admin/projects/:id", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
+    const { title, description, status, skills_required, deadline, compensation } = req.body;
+    await db.execute({
+      sql: `UPDATE projects SET
+        title = COALESCE(?, title),
+        description = COALESCE(?, description),
+        status = COALESCE(?, status),
+        skills_required = COALESCE(?, skills_required),
+        deadline = COALESCE(?, deadline),
+        compensation = COALESCE(?, compensation)
+        WHERE id = ?`,
+      args: [title || null, description || null, status || null, skills_required ? JSON.stringify(skills_required) : null, deadline !== undefined ? deadline : null, compensation !== undefined ? compensation : null, req.params.id],
+    });
+    res.json({ message: "Updated" });
+  });
+
+  app.delete("/api/admin/projects/:id", adminApiLimiter, requireAdmin, async (req, res) => {
+    await db.execute({ sql: "DELETE FROM projects WHERE id = ?", args: [req.params.id] });
+    res.json({ message: "Deleted" });
+  });
+
+  // ─── Messaging Routes ─────────────────────────────────────────────────────────
+  app.get("/api/messages/inbox", adminApiLimiter, authenticate, async (req: any, res: any) => {
+    const result = await db.execute({
+      sql: "SELECT m.*, u.name as sender_name, u.role as sender_role FROM messages m JOIN users u ON m.sender_id = u.id WHERE m.recipient_id = ? ORDER BY m.created_at DESC",
+      args: [req.user.id],
+    });
+    res.json(result.rows as any[]);
+  });
+
+  app.get("/api/messages/sent", adminApiLimiter, authenticate, async (req: any, res: any) => {
+    const result = await db.execute({
+      sql: "SELECT m.*, u.name as recipient_name, u.role as recipient_role FROM messages m JOIN users u ON m.recipient_id = u.id WHERE m.sender_id = ? ORDER BY m.created_at DESC",
+      args: [req.user.id],
+    });
+    res.json(result.rows as any[]);
+  });
+
+  app.get("/api/messages/thread/:userId", adminApiLimiter, authenticate, async (req: any, res: any) => {
+    const result = await db.execute({
+      sql: "SELECT m.*, u.name as sender_name FROM messages m JOIN users u ON m.sender_id = u.id WHERE (m.sender_id = ? AND m.recipient_id = ?) OR (m.sender_id = ? AND m.recipient_id = ?) ORDER BY m.created_at ASC",
+      args: [req.user.id, req.params.userId, req.params.userId, req.user.id],
+    });
+    res.json(result.rows as any[]);
+  });
+
+  app.post("/api/messages/send", adminApiLimiter, authenticate, async (req: any, res: any) => {
+    const { recipient_id, subject, body } = req.body;
+    if (!recipient_id || !body) return res.status(400).json({ message: "recipient_id and body required" });
+    if (recipient_id === req.user.id) return res.status(400).json({ message: "Cannot message yourself" });
+
+    // Check intern-to-intern restriction
+    if (req.user.role === "student") {
+      const recipientResult = await db.execute({ sql: "SELECT role FROM users WHERE id = ?", args: [recipient_id] });
+      const recipient = recipientResult.rows[0] as any;
+      if (!recipient) return res.status(404).json({ message: "Recipient not found" });
+      if (recipient.role === "student") {
+        const settingResult = await db.execute({ sql: "SELECT value FROM platform_settings WHERE key = 'allow_intern_to_intern_messaging'", args: [] });
+        const setting = settingResult.rows[0] as any;
+        if (!setting || setting.value !== "true") {
+          return res.status(403).json({ message: "Intern-to-intern messaging is not enabled" });
+        }
+      }
+    }
+
+    const id = crypto.randomUUID();
+    await db.execute({
+      sql: "INSERT INTO messages (id, sender_id, recipient_id, subject, body) VALUES (?, ?, ?, ?, ?)",
+      args: [id, req.user.id, recipient_id, subject || null, body],
+    });
+
+    // Upsert thread record
+    const threadResult = await db.execute({
+      sql: "SELECT id FROM message_threads WHERE (participant_one = ? AND participant_two = ?) OR (participant_one = ? AND participant_two = ?)",
+      args: [req.user.id, recipient_id, recipient_id, req.user.id],
+    });
+    if (threadResult.rows.length > 0) {
+      const thread = threadResult.rows[0] as any;
+      await db.execute({ sql: "UPDATE message_threads SET last_message_at = CURRENT_TIMESTAMP WHERE id = ?", args: [thread.id] });
+    } else {
+      await db.execute({
+        sql: "INSERT INTO message_threads (id, participant_one, participant_two) VALUES (?, ?, ?)",
+        args: [crypto.randomUUID(), req.user.id, recipient_id],
+      });
+    }
+
+    res.status(201).json({ id });
+  });
+
+  app.patch("/api/messages/:id/read", adminApiLimiter, authenticate, async (req: any, res: any) => {
+    await db.execute({ sql: "UPDATE messages SET read = 1 WHERE id = ? AND recipient_id = ?", args: [req.params.id, req.user.id] });
+    res.json({ message: "Marked as read" });
+  });
+
+  app.delete("/api/messages/:id", adminApiLimiter, authenticate, async (req: any, res: any) => {
+    const result = await db.execute({ sql: "SELECT * FROM messages WHERE id = ?", args: [req.params.id] });
+    const msg = result.rows[0] as any;
+    if (!msg) return res.status(404).json({ message: "Not found" });
+    if (msg.sender_id !== req.user.id && msg.recipient_id !== req.user.id) return res.status(403).json({ message: "Forbidden" });
+    await db.execute({ sql: "DELETE FROM messages WHERE id = ?", args: [req.params.id] });
+    res.json({ message: "Deleted" });
+  });
+
+  app.get("/api/messages/unread/count", adminApiLimiter, authenticate, async (req: any, res: any) => {
+    const result = await db.execute({ sql: "SELECT COUNT(*) as count FROM messages WHERE recipient_id = ? AND read = 0", args: [req.user.id] });
+    res.json({ count: (result.rows[0] as any)?.count || 0 });
+  });
+
+  app.get("/api/messages/contacts", adminApiLimiter, authenticate, async (req: any, res: any) => {
+    let sql: string;
+    const args: any[] = [];
+    if (req.user.role === "admin" || req.user.role === "superadmin") {
+      // Admins can message everyone except themselves
+      sql = "SELECT id, name, email, role FROM users WHERE is_active = 1 AND id != ? ORDER BY name ASC";
+      args.push(req.user.id);
+    } else {
+      // Check intern-to-intern setting
+      const settingResult = await db.execute({ sql: "SELECT value FROM platform_settings WHERE key = 'allow_intern_to_intern_messaging'", args: [] });
+      const setting = settingResult.rows[0] as any;
+      const internToIntern = setting?.value === "true";
+      if (internToIntern) {
+        sql = "SELECT id, name, email, role FROM users WHERE is_active = 1 AND id != ? ORDER BY name ASC";
+        args.push(req.user.id);
+      } else {
+        // Interns can only message admins
+        sql = "SELECT id, name, email, role FROM users WHERE is_active = 1 AND id != ? AND role IN ('admin', 'superadmin') ORDER BY name ASC";
+        args.push(req.user.id);
+      }
+    }
+    const result = await db.execute({ sql, args });
+    res.json(result.rows as any[]);
+  });
+
+  app.get("/api/messages/conversations", adminApiLimiter, authenticate, async (req: any, res: any) => {
+    // Get all unique conversation partners with last message preview
+    const result = await db.execute({
+      sql: `SELECT
+        CASE WHEN mt.participant_one = ? THEN mt.participant_two ELSE mt.participant_one END as other_user_id,
+        u.name as other_user_name, u.role as other_user_role,
+        mt.last_message_at,
+        (SELECT COUNT(*) FROM messages WHERE sender_id = CASE WHEN mt.participant_one = ? THEN mt.participant_two ELSE mt.participant_one END AND recipient_id = ? AND read = 0) as unread_count,
+        (SELECT body FROM messages WHERE (sender_id = ? AND recipient_id = CASE WHEN mt.participant_one = ? THEN mt.participant_two ELSE mt.participant_one END) OR (recipient_id = ? AND sender_id = CASE WHEN mt.participant_one = ? THEN mt.participant_two ELSE mt.participant_one END) ORDER BY created_at DESC LIMIT 1) as last_message
+        FROM message_threads mt
+        JOIN users u ON u.id = CASE WHEN mt.participant_one = ? THEN mt.participant_two ELSE mt.participant_one END
+        WHERE mt.participant_one = ? OR mt.participant_two = ?
+        ORDER BY mt.last_message_at DESC`,
+      args: [req.user.id, req.user.id, req.user.id, req.user.id, req.user.id, req.user.id, req.user.id, req.user.id, req.user.id, req.user.id],
+    });
+    res.json(result.rows as any[]);
+  });
+
+  app.post("/api/messages/broadcast", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
+    const { subject, body } = req.body;
+    if (!body) return res.status(400).json({ message: "body required" });
+    const internsResult = await db.execute({ sql: "SELECT id FROM users WHERE role = 'student' AND is_active = 1", args: [] });
+    const interns = internsResult.rows as any[];
+    for (const intern of interns) {
+      const id = crypto.randomUUID();
+      await db.execute({
+        sql: "INSERT INTO messages (id, sender_id, recipient_id, subject, body) VALUES (?, ?, ?, ?, ?)",
+        args: [id, req.user.id, intern.id, subject || null, body],
+      });
+    }
+    res.json({ message: `Broadcast sent to ${interns.length} intern(s)` });
+  });
+
+  app.get("/api/admin/settings/platform", adminApiLimiter, requireAdmin, async (req, res) => {
+    const result = await db.execute({ sql: "SELECT * FROM platform_settings", args: [] });
+    const settings: Record<string, string> = {};
+    (result.rows as any[]).forEach(r => { settings[r.key] = r.value; });
+    res.json(settings);
+  });
+
+  app.patch("/api/admin/settings/platform", adminApiLimiter, requireSuperadmin, async (req: any, res: any) => {
+    const { key, value } = req.body;
+    if (!key || value === undefined) return res.status(400).json({ message: "key and value required" });
+    await db.execute({
+      sql: "INSERT INTO platform_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = CURRENT_TIMESTAMP",
+      args: [key, value, value],
+    });
+    res.json({ message: "Setting updated" });
+  });
+
   // ─── Legacy student task routes ────────────────────────────────────────────────
   app.get("/api/tasks/mine", studentApiLimiter, authenticate, async (req: any, res: any) => {
     if (req.user.role !== "student") return res.status(403).json({ message: "Students only" });

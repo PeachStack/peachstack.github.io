@@ -158,7 +158,7 @@ async function startServer() {
   });
 
   // ─── Student Profiles ─────────────────────────────────────────────────────────
-  app.get("/api/students/:id", authenticate, async (req, res) => {
+  app.get("/api/students/:id", studentApiLimiter, authenticate, async (req, res) => {
     const result = await db.execute({
       sql: "SELECT u.name, u.email, s.* FROM users u JOIN student_profiles s ON u.id = s.user_id WHERE u.id = ?",
       args: [req.params.id],
@@ -170,7 +170,7 @@ async function startServer() {
     res.json(profile);
   });
 
-  app.put("/api/students/:id", authenticate, async (req: any, res: any) => {
+  app.put("/api/students/:id", studentApiLimiter, authenticate, async (req: any, res: any) => {
     if (req.user.id !== req.params.id && req.user.role !== "admin") {
       return res.status(403).json({ message: "Forbidden" });
     }
@@ -183,7 +183,7 @@ async function startServer() {
   });
 
   // ─── Employer Profiles ────────────────────────────────────────────────────────
-  app.get("/api/employers/:id", authenticate, async (req: any, res: any) => {
+  app.get("/api/employers/:id", studentApiLimiter, authenticate, async (req: any, res: any) => {
     const result = await db.execute({
       sql: "SELECT u.name, u.email, e.* FROM users u JOIN employer_profiles e ON u.id = e.user_id WHERE u.id = ?",
       args: [req.params.id],
@@ -199,7 +199,7 @@ async function startServer() {
     res.json((result.rows as any[]).map((p) => ({ ...p, skills_required: JSON.parse(p.skills_required || "[]") })));
   });
 
-  app.post("/api/projects", authenticate, async (req: any, res: any) => {
+  app.post("/api/projects", studentApiLimiter, authenticate, async (req: any, res: any) => {
     if (req.user.role !== "employer" && req.user.role !== "admin") {
       return res.status(403).json({ message: "Forbidden" });
     }
@@ -213,7 +213,7 @@ async function startServer() {
   });
 
   // ─── Applications ─────────────────────────────────────────────────────────────
-  app.post("/api/applications", authenticate, async (req: any, res: any) => {
+  app.post("/api/applications", studentApiLimiter, authenticate, async (req: any, res: any) => {
     if (req.user.role !== "student") return res.status(403).json({ message: "Only students can apply" });
     const { project_id, cover_letter } = req.body;
     const id = crypto.randomUUID();

@@ -23,7 +23,7 @@ Copy `.env.example` to `.env.local` and fill in your values.
 npm run dev
 ```
 
-### Build
+### Build 
 
 ```bash
 npm run build

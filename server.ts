@@ -258,12 +258,12 @@ async function startServer() {
       JWT_SECRET,
       { expiresIn: "24h" }
     );
-    res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "none", maxAge: 24 * 60 * 60 * 1000 });
+    res.cookie("token", token, { httpOnly: true, secure: true, sameSite: "none", maxAge: 24 * 60 * 60 * 1000 });
     res.json({ user: { id: user.id, email: user.email, role: user.role, name: user.name, isSuperadmin } });
   });
 
   app.post("/api/admin/logout", adminApiLimiter, requireAdmin, (req, res) => {
-    res.clearCookie("token", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "none" });
+    res.clearCookie("token", { httpOnly: true, secure: true, sameSite: "none" });
     res.json({ message: "Logged out" });
   });
 
@@ -367,6 +367,11 @@ async function startServer() {
         sql: "INSERT INTO admin_audit_log (id, admin_id, action, target_type, target_id, details, ip_address) VALUES (?, ?, 'created_admin', 'user', ?, ?, ?)",
         args: [crypto.randomUUID(), req.user.id, id, JSON.stringify({ email, name }), req.ip],
       });
+      // Auto-add new admin to all existing groups
+      const allGroups = await db.execute({ sql: "SELECT id FROM message_groups", args: [] });
+      for (const group of allGroups.rows as any[]) {
+        await db.execute({ sql: "INSERT OR IGNORE INTO message_group_members (group_id, user_id) VALUES (?, ?)", args: [group.id, id] });
+      }
       res.status(201).json({ id, message: "Admin created" });
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -408,6 +413,14 @@ async function startServer() {
         sql: "INSERT INTO notifications (id, user_id, message, type) VALUES (?, ?, ?, 'account_created')",
         args: [crypto.randomUUID(), id, `Welcome to Peachstack, ${name}! Your account has been created.`],
       });
+      // Auto-add intern to matching role-based groups
+      const groupsResult = await db.execute({
+        sql: "SELECT id FROM message_groups WHERE role_filter = 'all'" + (internRole ? " OR role_filter = ?" : ""),
+        args: internRole ? [internRole] : [],
+      });
+      for (const group of groupsResult.rows as any[]) {
+        await db.execute({ sql: "INSERT OR IGNORE INTO message_group_members (group_id, user_id) VALUES (?, ?)", args: [group.id, id] });
+      }
       res.status(201).json({ id, message: "Intern created" });
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -753,8 +766,20 @@ async function startServer() {
   });
 
   app.get("/api/messages/unread/count", adminApiLimiter, authenticate, async (req: any, res: any) => {
-    const result = await db.execute({ sql: "SELECT COUNT(*) as count FROM messages WHERE recipient_id = ? AND read = 0", args: [req.user.id] });
-    res.json({ count: (result.rows[0] as any)?.count || 0 });
+    const dmResult = await db.execute({ sql: "SELECT COUNT(*) as count FROM messages WHERE recipient_id = ? AND read = 0", args: [req.user.id] });
+    const dmCount = Number((dmResult.rows[0] as any)?.count || 0);
+    const groupResult = await db.execute({
+      sql: `SELECT COUNT(*) as count FROM group_messages gm
+        JOIN message_group_members mgm ON gm.group_id = mgm.group_id
+        WHERE mgm.user_id = ? AND gm.sender_id != ?
+        AND gm.created_at > COALESCE(
+          (SELECT last_read_at FROM group_message_reads WHERE group_id = gm.group_id AND user_id = ?),
+          '1970-01-01'
+        )`,
+      args: [req.user.id, req.user.id, req.user.id],
+    });
+    const groupCount = Number((groupResult.rows[0] as any)?.count || 0);
+    res.json({ count: dmCount + groupCount });
   });
 
   app.get("/api/messages/contacts", adminApiLimiter, authenticate, async (req: any, res: any) => {
@@ -813,6 +838,144 @@ async function startServer() {
       });
     }
     res.json({ message: `Broadcast sent to ${interns.length} intern(s)` });
+  });
+
+  // ─── Group Chats ──────────────────────────────────────────────────────────────
+  // GET /api/messages/groups — list groups the current user is a member of
+  app.get("/api/messages/groups", adminApiLimiter, authenticate, async (req: any, res: any) => {
+    const result = await db.execute({
+      sql: `SELECT mg.id, mg.name, mg.description, mg.role_filter,
+        (SELECT COUNT(*) FROM message_group_members WHERE group_id = mg.id) as member_count,
+        (SELECT body FROM group_messages WHERE group_id = mg.id ORDER BY created_at DESC LIMIT 1) as last_message,
+        (SELECT created_at FROM group_messages WHERE group_id = mg.id ORDER BY created_at DESC LIMIT 1) as last_message_at,
+        COALESCE((SELECT COUNT(*) FROM group_messages gm2 WHERE gm2.group_id = mg.id
+          AND gm2.sender_id != ?
+          AND gm2.created_at > COALESCE(
+            (SELECT last_read_at FROM group_message_reads WHERE group_id = mg.id AND user_id = ?),
+            '1970-01-01'
+          )), 0) as unread_count
+        FROM message_groups mg
+        JOIN message_group_members mgm ON mg.id = mgm.group_id
+        WHERE mgm.user_id = ?
+        ORDER BY last_message_at DESC, mg.created_at DESC`,
+      args: [req.user.id, req.user.id, req.user.id],
+    });
+    res.json(result.rows as any[]);
+  });
+
+  // GET /api/messages/groups/:id — get messages in a group (must be a member)
+  app.get("/api/messages/groups/:id", adminApiLimiter, authenticate, async (req: any, res: any) => {
+    const memberCheck = await db.execute({
+      sql: "SELECT 1 FROM message_group_members WHERE group_id = ? AND user_id = ?",
+      args: [req.params.id, req.user.id],
+    });
+    if (memberCheck.rows.length === 0) return res.status(403).json({ message: "Not a member of this group" });
+    const result = await db.execute({
+      sql: "SELECT gm.*, u.name as sender_name FROM group_messages gm JOIN users u ON gm.sender_id = u.id WHERE gm.group_id = ? ORDER BY gm.created_at ASC",
+      args: [req.params.id],
+    });
+    res.json(result.rows as any[]);
+  });
+
+  // POST /api/messages/groups/:id/send — send a message to a group
+  app.post("/api/messages/groups/:id/send", adminApiLimiter, authenticate, async (req: any, res: any) => {
+    const { body } = req.body;
+    if (!body) return res.status(400).json({ message: "body required" });
+    const memberCheck = await db.execute({
+      sql: "SELECT 1 FROM message_group_members WHERE group_id = ? AND user_id = ?",
+      args: [req.params.id, req.user.id],
+    });
+    if (memberCheck.rows.length === 0) return res.status(403).json({ message: "Not a member of this group" });
+    const id = crypto.randomUUID();
+    await db.execute({
+      sql: "INSERT INTO group_messages (id, group_id, sender_id, body) VALUES (?, ?, ?, ?)",
+      args: [id, req.params.id, req.user.id, body],
+    });
+    res.status(201).json({ id });
+  });
+
+  // PATCH /api/messages/groups/:id/read — mark group as read for current user
+  app.patch("/api/messages/groups/:id/read", adminApiLimiter, authenticate, async (req: any, res: any) => {
+    await db.execute({
+      sql: "INSERT INTO group_message_reads (group_id, user_id, last_read_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(group_id, user_id) DO UPDATE SET last_read_at = CURRENT_TIMESTAMP",
+      args: [req.params.id, req.user.id],
+    });
+    res.json({ message: "Marked as read" });
+  });
+
+  // POST /api/admin/messages/groups — create a group (admin only)
+  app.post("/api/admin/messages/groups", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
+    const { name, description, role_filter } = req.body;
+    if (!name) return res.status(400).json({ message: "name required" });
+    const id = crypto.randomUUID();
+    await db.execute({
+      sql: "INSERT INTO message_groups (id, name, description, role_filter, created_by) VALUES (?, ?, ?, ?, ?)",
+      args: [id, name, description || null, role_filter || null, req.user.id],
+    });
+    // Auto-add all active admins
+    const adminsResult = await db.execute({ sql: "SELECT id FROM users WHERE role IN ('admin', 'superadmin') AND is_active = 1", args: [] });
+    for (const admin of adminsResult.rows as any[]) {
+      await db.execute({ sql: "INSERT OR IGNORE INTO message_group_members (group_id, user_id) VALUES (?, ?)", args: [id, admin.id] });
+    }
+    // Auto-add matching interns by role_filter
+    if (role_filter) {
+      let internSql: string;
+      let internArgs: any[];
+      if (role_filter === "all") {
+        internSql = "SELECT id FROM users WHERE role = 'student' AND is_active = 1";
+        internArgs = [];
+      } else {
+        internSql = "SELECT u.id FROM users u JOIN student_profiles sp ON u.id = sp.user_id WHERE u.role = 'student' AND u.is_active = 1 AND sp.intern_role = ?";
+        internArgs = [role_filter];
+      }
+      const internsResult = await db.execute({ sql: internSql, args: internArgs });
+      for (const intern of internsResult.rows as any[]) {
+        await db.execute({ sql: "INSERT OR IGNORE INTO message_group_members (group_id, user_id) VALUES (?, ?)", args: [id, intern.id] });
+      }
+    }
+    res.status(201).json({ id, message: "Group created" });
+  });
+
+  // GET /api/admin/messages/groups — list all groups (admin view)
+  app.get("/api/admin/messages/groups", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
+    const result = await db.execute({
+      sql: `SELECT mg.*, (SELECT COUNT(*) FROM message_group_members WHERE group_id = mg.id) as member_count
+        FROM message_groups mg ORDER BY mg.created_at DESC`,
+      args: [],
+    });
+    res.json(result.rows as any[]);
+  });
+
+  // GET /api/admin/messages/groups/:id/members — list members of a group
+  app.get("/api/admin/messages/groups/:id/members", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
+    const result = await db.execute({
+      sql: "SELECT u.id, u.name, u.email, u.role FROM message_group_members mgm JOIN users u ON mgm.user_id = u.id WHERE mgm.group_id = ? ORDER BY u.name ASC",
+      args: [req.params.id],
+    });
+    res.json(result.rows as any[]);
+  });
+
+  // POST /api/admin/messages/groups/:id/members — add a member
+  app.post("/api/admin/messages/groups/:id/members", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
+    const { user_id } = req.body;
+    if (!user_id) return res.status(400).json({ message: "user_id required" });
+    await db.execute({ sql: "INSERT OR IGNORE INTO message_group_members (group_id, user_id) VALUES (?, ?)", args: [req.params.id, user_id] });
+    res.json({ message: "Member added" });
+  });
+
+  // DELETE /api/admin/messages/groups/:id/members/:userId — remove a member
+  app.delete("/api/admin/messages/groups/:id/members/:userId", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
+    await db.execute({ sql: "DELETE FROM message_group_members WHERE group_id = ? AND user_id = ?", args: [req.params.id, req.params.userId] });
+    res.json({ message: "Member removed" });
+  });
+
+  // DELETE /api/admin/messages/groups/:id — delete a group
+  app.delete("/api/admin/messages/groups/:id", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
+    await db.execute({ sql: "DELETE FROM message_group_members WHERE group_id = ?", args: [req.params.id] });
+    await db.execute({ sql: "DELETE FROM group_messages WHERE group_id = ?", args: [req.params.id] });
+    await db.execute({ sql: "DELETE FROM group_message_reads WHERE group_id = ?", args: [req.params.id] });
+    await db.execute({ sql: "DELETE FROM message_groups WHERE id = ?", args: [req.params.id] });
+    res.json({ message: "Group deleted" });
   });
 
   app.get("/api/admin/settings/platform", adminApiLimiter, requireAdmin, async (req, res) => {

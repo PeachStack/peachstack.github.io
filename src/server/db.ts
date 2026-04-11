@@ -183,6 +183,44 @@ export async function initDb() {
       FOREIGN KEY(participant_two) REFERENCES users(id)
     );
 
+    CREATE TABLE IF NOT EXISTS message_groups (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      role_filter TEXT,
+      created_by TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(created_by) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS message_group_members (
+      group_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY(group_id, user_id),
+      FOREIGN KEY(group_id) REFERENCES message_groups(id),
+      FOREIGN KEY(user_id) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS group_messages (
+      id TEXT PRIMARY KEY,
+      group_id TEXT NOT NULL,
+      sender_id TEXT NOT NULL,
+      body TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(group_id) REFERENCES message_groups(id),
+      FOREIGN KEY(sender_id) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS group_message_reads (
+      group_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      last_read_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY(group_id, user_id),
+      FOREIGN KEY(group_id) REFERENCES message_groups(id),
+      FOREIGN KEY(user_id) REFERENCES users(id)
+    );
+
     CREATE TABLE IF NOT EXISTS platform_settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL,

@@ -1,32 +1,61 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import AdminSidebar from '../../components/admin/AdminSidebar';
 import AdminTopbar from '../../components/admin/AdminTopbar';
 import { apiUrl } from '../../lib/api';
+import { WifiOff, RefreshCw } from 'lucide-react';
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [admin, setAdmin] = useState<{ name: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [networkError, setNetworkError] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetch(apiUrl('/api/me'), { credentials: 'include' })
-      .then(r => r.json())
-      .then(data => {
-        if (!data.user || (!data.user.isAdmin && data.user.role !== 'admin' && data.user.role !== 'superadmin')) {
-          navigate('/admin/login');
-        } else {
-          setAdmin({ name: data.user.name });
-        }
-      })
-      .catch(() => navigate('/admin/login'))
-      .finally(() => setLoading(false));
+  const checkAuth = useCallback(async () => {
+    setLoading(true);
+    setNetworkError(false);
+    try {
+      const res = await fetch(apiUrl('/api/me'), { credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok || !data.user || (!data.user.isAdmin && data.user.role !== 'admin' && data.user.role !== 'superadmin')) {
+        // Actual auth failure — redirect to login
+        navigate('/admin/login');
+        return;
+      }
+      setAdmin({ name: data.user.name });
+    } catch {
+      // Network error — show retry screen, do NOT redirect to login
+      setNetworkError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [navigate]);
+
+  useEffect(() => { checkAuth(); }, [checkAuth]);
 
   if (loading) return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center">
       <div className="h-8 w-8 border-4 border-peach-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+
+  if (networkError) return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-8">
+      <div className="text-center max-w-sm">
+        <div className="h-16 w-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
+          <WifiOff size={28} className="text-slate-400" />
+        </div>
+        <h2 className="font-display text-xl font-bold text-slate-900 mb-2">Connection issue</h2>
+        <p className="text-slate-500 text-sm mb-6">Could not reach the server. Check your connection and try again.</p>
+        <button
+          onClick={checkAuth}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-peach-500 text-white font-bold text-sm hover:bg-peach-600 transition-colors"
+        >
+          <RefreshCw size={16} />
+          Retry
+        </button>
+      </div>
     </div>
   );
 

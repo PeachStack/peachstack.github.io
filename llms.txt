@@ -1,0 +1,49 @@
+# Peach Stack
+
+> Peach Stack connects motivated college students with vetted employers for real, high-impact internship work. Based in Atlanta, Georgia. Founded by two UGA students — Arnav Hazari and Srikar Jujala.
+
+## What We Do
+
+Peach Stack is an early-career platform that bridges the gap between students who need experience and businesses that need reliable junior talent. We place college students in structured, project-based internships across sales, consulting, tech, and marketing tracks — with real deliverables, real mentorship, and real outcomes.
+
+We are **not** a job board. We are **not** a bootcamp. We are the operating layer between ambition and opportunity.
+
+## Key Pages
+
+- [Home](https://peachstack.github.io/): Overview of the platform, mission, and how it works.
+- [Apply for Students](https://peachstack.github.io/apply): How students can apply to join a Peach Stack cohort and the roles available (Sales & Business Development, Consulting Business Track, Consulting Tech Track, Marketing).
+- [For Employers](https://peachstack.github.io/for-employers): How businesses can hire pre-vetted, managed student talent through Peach Stack.
+- [About](https://peachstack.github.io/about): Founder bios — Arnav Hazari (MIS @ UGA, AI Fellow at Handshake, Generative AI at Uber) and Srikar Jujala (Finance + RMI @ UGA, incoming MS Business Analytics).
+- [Community](https://peachstack.github.io/community): Student network, peer resources, and community guidelines.
+- [Blog](https://peachstack.github.io/blog): Insights on early-career development, Atlanta's business landscape, and skill-building before graduation.
+- [Contact](https://peachstack.github.io/contact): Reach the Peach Stack team directly.
+- [Developers](https://peachstack.github.io/developers): Technical stack and open-source information.
+- [Privacy Policy](https://peachstack.github.io/privacy): Privacy practices for students and employers.
+- [Terms of Service](https://peachstack.github.io/terms): Platform terms.
+
+## Content Markdown Mirrors
+
+Markdown versions of key pages are available for LLM ingestion:
+
+- [Home (Markdown)](https://peachstack.github.io/content/home.md)
+- [Apply (Markdown)](https://peachstack.github.io/content/apply.md)
+- [For Employers (Markdown)](https://peachstack.github.io/content/for-employers.md)
+- [About (Markdown)](https://peachstack.github.io/content/about.md)
+- [Community (Markdown)](https://peachstack.github.io/content/community.md)
+
+## About the Founders
+
+**Arnav Hazari** — Co-Founder. Management Information Systems @ University of Georgia. Previously AI Development Fellow at Handshake, Generative AI Specialist at Uber AI Solutions, and Research Intern at University of Colorado Boulder. Leads product, engineering, and client strategy.
+
+**Srikar Jujala** — Co-Founder. Finance + Risk Management & Insurance @ University of Georgia. Incoming MS Business Analytics @ UGA. Previously AI Development Fellow at Handshake and Eagle Scout. Leads operations, finance, and business development.
+
+## Key Facts
+
+- Based in Atlanta, Georgia, USA
+- Founded by University of Georgia students
+- Serves college students seeking internships and early-career experience
+- Serves businesses (SMBs and startups) seeking affordable, managed junior talent
+- Roles offered: Sales & Business Development, Consulting (Business), Consulting (Tech), Marketing
+- Platform includes student dashboard, employer dashboard, workspace collaboration, and cohort management
+- Currently accepting applications for Summer 2026
+- LinkedIn: https://www.linkedin.com/company/peach-stack

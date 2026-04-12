@@ -1,0 +1,1 @@
+import{r as o}from"./index-Dr7zzRX7.js";const r="https://docs.google.com/forms/d/1uz55KEIkH3XwnVJxvdQgMMByidmsQRB9dRkVWLJb8p0/viewform";function e(){return o.useEffect(()=>{window.location.replace(r)},[]),null}export{e as default};

@@ -524,6 +524,7 @@ export async function buildApp() {
     await db.execute({ sql: "DELETE FROM group_message_reads WHERE user_id = ?", args: [id] });
     await db.execute({ sql: "DELETE FROM messages WHERE sender_id = ? OR recipient_id = ?", args: [id, id] });
     await db.execute({ sql: "DELETE FROM message_threads WHERE participant_one = ? OR participant_two = ?", args: [id, id] });
+    await db.execute({ sql: "DELETE FROM project_assignments WHERE user_id = ?", args: [id] });
     await db.execute({ sql: "DELETE FROM student_profiles WHERE user_id = ?", args: [id] });
     await db.execute({ sql: "DELETE FROM users WHERE id = ? AND role = 'student'", args: [id] });
     res.json({ message: "Intern account permanently deleted" });
@@ -763,17 +764,18 @@ export async function buildApp() {
   app.patch("/api/admin/projects/:id", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
     try {
       const { title, description, status, skills_required, deadline, compensation, target_role } = req.body;
+      if (!title || !description) return res.status(400).json({ message: "Title and description required" });
       await db.execute({
         sql: `UPDATE projects SET
-          title = COALESCE(?, title),
-          description = COALESCE(?, description),
-          status = COALESCE(?, status),
-          skills_required = COALESCE(?, skills_required),
-          deadline = COALESCE(?, deadline),
-          compensation = COALESCE(?, compensation),
-          target_role = COALESCE(?, target_role)
+          title = ?,
+          description = ?,
+          status = ?,
+          skills_required = ?,
+          deadline = ?,
+          compensation = ?,
+          target_role = ?
           WHERE id = ?`,
-        args: [title || null, description || null, status || null, skills_required ? JSON.stringify(skills_required) : null, deadline !== undefined ? deadline : null, compensation !== undefined ? compensation : null, target_role || null, req.params.id],
+        args: [title, description, status || 'open', JSON.stringify(skills_required || []), deadline || null, compensation || null, target_role || 'all', req.params.id],
       });
       res.json({ message: "Updated" });
     } catch (err: any) {

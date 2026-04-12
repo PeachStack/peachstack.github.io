@@ -4,6 +4,11 @@ import { Send, MessageSquarePlus, X, ChevronDown, ArrowLeft, Users } from 'lucid
 import { cn } from '../../lib/utils';
 import { Link } from 'react-router-dom';
 
+const parseUTC = (ts: string) => {
+  if (ts && !ts.endsWith('Z') && !ts.includes('+')) return new Date(ts + 'Z');
+  return new Date(ts);
+};
+
 interface Contact { id: string; name: string; email: string; role: string; }
 interface Conversation { other_user_id: string; other_user_name: string; other_user_role: string; last_message_at: string; unread_count: number; last_message: string; }
 interface Message { id: string; sender_id: string; recipient_id: string; subject?: string; body: string; read: number; created_at: string; sender_name: string; }
@@ -264,7 +269,7 @@ export default function WorkspaceMessages() {
                         <div className={cn("max-w-[75%] px-4 py-3 rounded-2xl text-sm", isMine ? "bg-peach-500 text-white rounded-br-sm" : "bg-slate-100 text-slate-900 rounded-bl-sm")}>
                           {msg.subject && <p className={cn("text-xs font-bold mb-1", isMine ? "text-peach-100" : "text-slate-500")}>{msg.subject}</p>}
                           <p className="leading-relaxed whitespace-pre-wrap">{msg.body}</p>
-                          <p className={cn("text-[10px] mt-1.5", isMine ? "text-peach-200" : "text-slate-400")}>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {new Date(msg.created_at).toLocaleDateString()}</p>
+                          <p className={cn("text-[10px] mt-1.5", isMine ? "text-peach-200" : "text-slate-400")}>{parseUTC(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {parseUTC(msg.created_at).toLocaleDateString()}</p>
                         </div>
                       </div>
                     );
@@ -312,7 +317,7 @@ export default function WorkspaceMessages() {
                       <div key={msg.id} className={cn("flex gap-2", isMine ? "justify-end" : "justify-start")}>
                         <div className={cn("max-w-[75%] px-4 py-3 rounded-2xl text-sm", isMine ? "bg-peach-500 text-white rounded-br-sm" : "bg-slate-100 text-slate-900 rounded-bl-sm")}>
                           <p className="leading-relaxed whitespace-pre-wrap">{msg.body}</p>
-                          <p className={cn("text-[10px] mt-1.5", isMine ? "text-peach-200" : "text-slate-400")}>{msg.sender_name} · {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {new Date(msg.created_at).toLocaleDateString()}</p>
+                          <p className={cn("text-[10px] mt-1.5", isMine ? "text-peach-200" : "text-slate-400")}>{msg.sender_name} · {parseUTC(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {parseUTC(msg.created_at).toLocaleDateString()}</p>
                         </div>
                       </div>
                     );

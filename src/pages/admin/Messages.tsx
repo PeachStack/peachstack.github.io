@@ -3,6 +3,11 @@ import { apiUrl } from '../../lib/api';
 import { Send, MessageSquarePlus, Megaphone, ChevronDown, X, Plus, Users, Trash2, Eye } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
+const parseUTC = (ts: string) => {
+  if (ts && !ts.endsWith('Z') && !ts.includes('+')) return new Date(ts + 'Z');
+  return new Date(ts);
+};
+
 interface Contact { id: string; name: string; email: string; role: string; }
 interface Conversation { other_user_id: string; other_user_name: string; other_user_role: string; last_message_at: string; unread_count: number; last_message: string; }
 interface Message { id: string; sender_id: string; recipient_id: string; subject?: string; body: string; read: number; created_at: string; sender_name: string; }
@@ -336,7 +341,7 @@ export default function AdminMessages() {
                       <div className={cn("max-w-[70%] px-4 py-3 rounded-2xl text-sm", msg.sender_id === monitorActive.user1_id ? "bg-slate-100 text-slate-900 rounded-bl-sm" : "bg-peach-50 text-slate-900 rounded-br-sm border border-peach-100")}>
                         {msg.subject && <p className="text-xs font-bold text-slate-500 mb-1">{msg.subject}</p>}
                         <p className="leading-relaxed whitespace-pre-wrap">{msg.body}</p>
-                        <p className="text-[10px] mt-1.5 text-slate-400">{msg.sender_name} · {new Date(msg.created_at).toLocaleString()}</p>
+                        <p className="text-[10px] mt-1.5 text-slate-400">{msg.sender_name} · {parseUTC(msg.created_at).toLocaleString()}</p>
                       </div>
                     </div>
                   ))}
@@ -446,7 +451,7 @@ export default function AdminMessages() {
                       <div className={cn("max-w-[70%] px-4 py-3 rounded-2xl text-sm", isMine ? "bg-peach-500 text-white rounded-br-sm" : "bg-slate-100 text-slate-900 rounded-bl-sm")}>
                         {msg.subject && <p className={cn("text-xs font-bold mb-1", isMine ? "text-peach-100" : "text-slate-500")}>{msg.subject}</p>}
                         <p className="leading-relaxed whitespace-pre-wrap">{msg.body}</p>
-                        <p className={cn("text-[10px] mt-1.5", isMine ? "text-peach-200" : "text-slate-400")}>{msg.sender_name} · {new Date(msg.created_at).toLocaleString()}</p>
+                        <p className={cn("text-[10px] mt-1.5", isMine ? "text-peach-200" : "text-slate-400")}>{msg.sender_name} · {parseUTC(msg.created_at).toLocaleString()}</p>
                       </div>
                     </div>
                   );
@@ -494,7 +499,7 @@ export default function AdminMessages() {
                     <div key={msg.id} className={cn("flex gap-2", isMine ? "justify-end" : "justify-start")}>
                       <div className={cn("max-w-[70%] px-4 py-3 rounded-2xl text-sm", isMine ? "bg-peach-500 text-white rounded-br-sm" : "bg-slate-100 text-slate-900 rounded-bl-sm")}>
                         <p className="leading-relaxed whitespace-pre-wrap">{msg.body}</p>
-                        <p className={cn("text-[10px] mt-1.5", isMine ? "text-peach-200" : "text-slate-400")}>{msg.sender_name} · {new Date(msg.created_at).toLocaleString()}</p>
+                        <p className={cn("text-[10px] mt-1.5", isMine ? "text-peach-200" : "text-slate-400")}>{msg.sender_name} · {parseUTC(msg.created_at).toLocaleString()}</p>
                       </div>
                     </div>
                   );

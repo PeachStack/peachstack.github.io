@@ -11,6 +11,7 @@ interface Task {
   id: string; title: string; description: string; status: string; priority: string;
   assignee_name?: string; assigned_to?: string; due_date?: string;
   estimated_hours?: number; actual_hours?: number; tags: string[];
+  project_label?: string;
   admin_feedback?: string; admin_score?: number;
   comments: Comment[]; activity: ActivityItem[];
 }
@@ -27,7 +28,7 @@ export default function TaskDetail() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
 
-  const [form, setForm] = useState({ title: '', description: '', status: 'open', priority: 'medium', assigned_to: '', due_date: '', estimated_hours: '', tags: '' });
+  const [form, setForm] = useState({ title: '', description: '', status: 'open', priority: 'medium', assigned_to: '', due_date: '', estimated_hours: '', tags: '', project_label: '' });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState('');
@@ -60,6 +61,7 @@ export default function TaskDetail() {
           due_date: asDateInput(data.due_date),
           estimated_hours: data.estimated_hours?.toString?.() || '',
           tags: (data.tags || []).join(', '),
+          project_label: data.project_label || '',
         });
         setReviewFeedback(data.admin_feedback || '');
         setReviewScore(data.admin_score?.toString?.() || '');
@@ -128,6 +130,7 @@ export default function TaskDetail() {
           due_date: form.due_date || null,
           estimated_hours: form.estimated_hours ? Number(form.estimated_hours) : null,
           tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
+          project_label: form.project_label || null,
         }),
       });
       if (!res.ok) {
@@ -239,6 +242,10 @@ export default function TaskDetail() {
             <div>
               <label className="block text-xs text-slate-500 mb-1">Title</label>
               <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400" />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">Project Label</label>
+              <input value={form.project_label} onChange={e => setForm(p => ({ ...p, project_label: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400" placeholder="e.g. Client Website Build" />
             </div>
             <div>
               <label className="block text-xs text-slate-500 mb-1">Description</label>

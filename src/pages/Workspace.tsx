@@ -16,6 +16,9 @@ interface ApiTask {
   estimated_hours?: number;
   tags: string[];
   points?: number;
+  project_label?: string;
+  admin_feedback?: string;
+  admin_score?: number;
 }
 
 interface CalendarEvent {
@@ -284,6 +287,36 @@ function TaskDetailModal({ task, onClose, onStatusChange }: { task: ApiTask; onC
             </div>
           )}
 
+          {/* Feedback section for completed/reviewed tasks */}
+          {isCompleted && task.admin_feedback && (
+            <div className="border border-green-100 bg-green-50 rounded-2xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle2 size={14} className="text-green-600 shrink-0" />
+                <span className="text-sm font-semibold text-green-700">Admin Feedback</span>
+                {task.admin_score != null && (
+                  <span className="ml-auto text-xs font-bold bg-green-600 text-white rounded-full px-2 py-0.5">
+                    {task.admin_score}/100
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-slate-700 leading-relaxed">{task.admin_feedback}</p>
+            </div>
+          )}
+
+          {task.status === 'in_progress' && task.admin_feedback && (
+            <div className="border border-amber-100 bg-amber-50 rounded-2xl p-4">
+              <p className="text-xs font-bold text-amber-700 mb-1">⚠ Needs revision — see feedback below</p>
+              <p className="text-sm text-slate-700 leading-relaxed">{task.admin_feedback}</p>
+            </div>
+          )}
+
+          {task.status === 'in_review' && (
+            <div className="border border-blue-100 bg-blue-50 rounded-2xl p-3 flex items-center gap-2">
+              <Clock size={14} className="text-blue-500 shrink-0" />
+              <p className="text-sm text-blue-700 font-medium">Awaiting review from admin</p>
+            </div>
+          )}
+
           {!isCompleted && (
             <div className="border-t border-slate-100 pt-4">
               <p className="text-xs text-slate-500 mb-3">
@@ -308,7 +341,18 @@ function TaskDetailModal({ task, onClose, onStatusChange }: { task: ApiTask; onC
               </button>
             </div>
           )}
-          {isCompleted && (
+          {isCompleted && !task.admin_feedback && (
+            <div className="border-t border-slate-100 pt-4 flex items-center gap-2 text-green-600">
+              <CheckCircle2 size={16} />
+              <span className="text-sm font-semibold">Task completed — great work!</span>
+              {task.admin_score != null && (
+                <span className="ml-auto text-xs font-bold bg-green-600 text-white rounded-full px-2 py-0.5">
+                  {task.admin_score}/100
+                </span>
+              )}
+            </div>
+          )}
+          {isCompleted && task.admin_feedback && (
             <div className="border-t border-slate-100 pt-4 flex items-center gap-2 text-green-600">
               <CheckCircle2 size={16} />
               <span className="text-sm font-semibold">Task completed — great work!</span>
@@ -506,11 +550,22 @@ export default function Workspace() {
                   <p className="text-xs mt-1">Check back when your admin assigns tasks to you</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {tasks.map((task) => {
+                (() => {
+                  // Group tasks by project_label
+                  const taskGroups = tasks.reduce<Record<string, ApiTask[]>>((acc, t) => {
+                    const key = t.project_label || '';
+                    (acc[key] = acc[key] || []).push(t);
+                    return acc;
+                  }, {});
+                  const groupKeys = Object.keys(taskGroups).sort((a, b) => {
+                    if (!a) return 1; if (!b) return -1; return a.localeCompare(b);
+                  });
+                  const hasGroups = groupKeys.some(k => k !== '');
+
+                  const TaskCard = ({ task }: { task: ApiTask }) => {
                     const isSubmitted = task.status === 'in_review' || task.status === 'completed';
                     const isCompleted = task.status === 'completed';
-                    const projectLabel = task.tags?.[0] ?? null;
+                    const hasFeedback = !!task.admin_feedback;
                     return (
                       <motion.div
                         key={task.id}
@@ -540,12 +595,6 @@ export default function Workspace() {
                             className="flex-grow text-left"
                             onClick={() => setSelectedTask(task)}
                           >
-                            {projectLabel && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-peach-600 bg-peach-50 px-2 py-0.5 rounded mb-1.5">
-                                <Tag size={9} />
-                                {projectLabel}
-                              </span>
-                            )}
                             <h4 className={cn("text-base font-bold text-slate-900 hover:text-peach-600 transition-colors leading-snug", isCompleted && "line-through")}>
                               {task.title}
                             </h4>
@@ -568,14 +617,57 @@ export default function Workspace() {
                           <span className={cn("rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", getPriorityStyle(task.priority))}>
                             {getPriorityLabel(task.priority)}
                           </span>
-                          {task.tags.slice(1).map(tag => (
+                          {task.tags.map(tag => (
                             <span key={tag} className="px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px]">{tag}</span>
                           ))}
+                          {hasFeedback && (
+                            <span className="ml-auto flex items-center gap-1 text-[10px] font-semibold text-blue-500 bg-blue-50 px-2 py-0.5 rounded">
+                              <MessageSquare size={9} />Feedback
+                            </span>
+                          )}
+                          {isCompleted && task.admin_score != null && (
+                            <span className="flex items-center text-[10px] font-bold text-white bg-green-500 px-2 py-0.5 rounded">
+                              {task.admin_score}/100
+                            </span>
+                          )}
                         </div>
                       </motion.div>
                     );
-                  })}
-                </div>
+                  };
+
+                  if (!hasGroups) {
+                    return (
+                      <div className="space-y-4">
+                        {tasks.map(task => <TaskCard key={task.id} task={task} />)}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-6">
+                      {groupKeys.map(key => (
+                        <div key={key || '__ungrouped__'}>
+                          {key ? (
+                            <div className="flex items-center gap-2 mb-3">
+                              <Tag size={14} className="text-peach-500 shrink-0" />
+                              <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">{key}</h3>
+                              <div className="flex-1 h-px bg-slate-100" />
+                              <span className="text-xs text-slate-400">{taskGroups[key].length}</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 mb-3">
+                              <h3 className="text-sm font-semibold text-slate-400">Ungrouped</h3>
+                              <div className="flex-1 h-px bg-slate-100" />
+                            </div>
+                          )}
+                          <div className="space-y-4">
+                            {taskGroups[key].map(task => <TaskCard key={task.id} task={task} />)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()
               )}
             </section>
           </div>

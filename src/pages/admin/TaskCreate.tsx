@@ -10,7 +10,7 @@ export default function TaskCreate() {
   const navigate = useNavigate();
   const [interns, setInterns] = useState<Array<{ id: string; name: string; intern_role?: string }>>([]);
   const [assignMode, setAssignMode] = useState<'individual' | 'role'>('individual');
-  const [form, setForm] = useState({ title: '', description: '', assigned_to: '', assigned_role: '', priority: 'medium', due_date: '', estimated_hours: '', tags: '' });
+  const [form, setForm] = useState({ title: '', project_label: '', description: '', assigned_to: '', assigned_role: '', priority: 'medium', due_date: '', estimated_hours: '', tags: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -25,6 +25,7 @@ export default function TaskCreate() {
     try {
       const body: Record<string, any> = {
         title: form.title,
+        project_label: form.project_label || null,
         description: form.description,
         priority: form.priority,
         due_date: form.due_date || null,
@@ -58,6 +59,11 @@ export default function TaskCreate() {
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">Title *</label>
           <input required value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent" placeholder="Task title..." />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">Project Label <span className="text-slate-400 font-normal">(optional)</span></label>
+          <input value={form.project_label} onChange={e => setForm(p => ({ ...p, project_label: e.target.value }))} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent" placeholder="e.g. Client Website Build, Sales Outreach Q3" />
+          <p className="mt-1 text-xs text-slate-400">Group related tasks under the same label for easy filtering.</p>
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">Description *</label>

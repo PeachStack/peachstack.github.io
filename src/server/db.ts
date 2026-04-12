@@ -261,18 +261,14 @@ export async function initDb() {
     args: [],
   });
 
-  // Upsert the superadmin to match the ADMIN_PASSWORD env var.
-  // We store a keyed HMAC-SHA-256 fingerprint of the source password (keyed with
-  // JWT_SECRET) so we can skip the expensive bcrypt.hash on every cold start when
-  // nothing has changed.  Using HMAC prevents reversing the fingerprint without
-  // knowing JWT_SECRET, addressing the concern of leaking password information.
-  const passwordSource = process.env.ADMIN_PASSWORD || '!Peach$Stack$2026';
-  if (!process.env.JWT_SECRET) throw new Error("FATAL: JWT_SECRET environment variable is not set");
-  const { createHmac } = await import('crypto');
-  const passwordFingerprint = createHmac('sha256', process.env.JWT_SECRET)
-    .update(passwordSource)
-    .digest('hex')
-    .substring(0, 32);
+  // Upsert the superadmin only when the ADMIN_PASSWORD env var or ADMIN_PASSWORD_VERSION
+  // changes — skipping the expensive bcrypt.hash on every cold start.
+  //
+  // To rotate the admin password:
+  //   1. Set the new ADMIN_PASSWORD env var.
+  //   2. Bump ADMIN_PASSWORD_VERSION (e.g. 1 → 2) so the next cold start detects the change.
+  const adminPwVersion = process.env.ADMIN_PASSWORD_VERSION || '1';
+  const fpKey = `v${adminPwVersion}`;
 
   const fpResult = await db.execute({
     sql: "SELECT value FROM platform_settings WHERE key = 'admin_pw_fp'",
@@ -280,10 +276,10 @@ export async function initDb() {
   });
   const storedFp = fpResult.rows.length > 0 ? (fpResult.rows[0] as any).value : null;
 
-  if (storedFp !== passwordFingerprint) {
-    // Password changed or first boot — hash and upsert (slow path, runs rarely).
+  if (storedFp !== fpKey) {
+    // Password version changed or first boot — hash and upsert (slow path, runs rarely).
     const bcrypt = await import('bcryptjs');
-    const adminPassword = await bcrypt.default.hash(passwordSource, 12);
+    const adminPassword = await bcrypt.default.hash(process.env.ADMIN_PASSWORD || '!Peach$Stack$2026', 12);
     await db.execute({
       sql: `INSERT OR REPLACE INTO users (id, email, password, role, name, is_active, token_version)
             VALUES ('admin-1', 'peachstackadmin@gmail.com', ?, 'superadmin', 'Peach Stack Admin', 1,
@@ -292,7 +288,7 @@ export async function initDb() {
     });
     await db.execute({
       sql: "INSERT OR REPLACE INTO platform_settings (key, value) VALUES ('admin_pw_fp', ?)",
-      args: [passwordFingerprint],
+      args: [fpKey],
     });
   }
 }

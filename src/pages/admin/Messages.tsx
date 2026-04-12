@@ -36,6 +36,9 @@ export default function AdminMessages() {
   const [groupThread, setGroupThread] = useState<GroupMessage[]>([]);
   const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
   const [showMembers, setShowMembers] = useState(false);
+  const [addMemberSearch, setAddMemberSearch] = useState('');
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [addingMember, setAddingMember] = useState(false);
   const [currentUserId, setCurrentUserId] = useState('');
   const [compose, setCompose] = useState(false);
   const [broadcast, setBroadcast] = useState(false);
@@ -47,6 +50,7 @@ export default function AdminMessages() {
   const [newMsg, setNewMsg] = useState({ recipient_id: '', subject: '', body: '' });
   const [broadcastMsg, setBroadcastMsg] = useState({ subject: '', body: '' });
   const [newGroup, setNewGroup] = useState({ name: '', description: '', role_filter: '' });
+  const [newGroupMemberIds, setNewGroupMemberIds] = useState<string[]>([]);
   const [replyBody, setReplyBody] = useState('');
   const [sending, setSending] = useState(false);
   const [broadcastSending, setBroadcastSending] = useState(false);
@@ -190,9 +194,10 @@ export default function AdminMessages() {
     await fetch(apiUrl('/api/admin/messages/groups'), {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newGroup),
+      body: JSON.stringify({ ...newGroup, member_ids: newGroupMemberIds }),
     });
     setNewGroup({ name: '', description: '', role_filter: '' });
+    setNewGroupMemberIds([]);
     setShowNewGroup(false); setGroupCreating(false);
     loadGroups();
   };
@@ -201,6 +206,30 @@ export default function AdminMessages() {
     if (!confirm('Delete this group? This cannot be undone.')) return;
     await fetch(apiUrl(`/api/admin/messages/groups/${groupId}`), { method: 'DELETE', credentials: 'include' });
     if (activeThread?.type === 'group' && activeThread.groupId === groupId) setActiveThread(null);
+    loadGroups();
+  };
+
+  const addMemberToGroup = async (userId: string) => {
+    if (!activeThread || activeThread.type !== 'group') return;
+    setAddingMember(true);
+    await fetch(apiUrl(`/api/admin/messages/groups/${activeThread.groupId}/members`), {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId }),
+    });
+    setAddingMember(false);
+    setAddMemberSearch('');
+    setShowAddMember(false);
+    // Reload members and group list
+    const data = await fetch(apiUrl(`/api/admin/messages/groups/${activeThread.groupId}/members`), { credentials: 'include' }).then(r => r.json());
+    setGroupMembers(Array.isArray(data) ? data : []);
+    loadGroups();
+  };
+
+  const removeMemberFromGroup = async (userId: string) => {
+    if (!activeThread || activeThread.type !== 'group') return;
+    await fetch(apiUrl(`/api/admin/messages/groups/${activeThread.groupId}/members/${userId}`), { method: 'DELETE', credentials: 'include' });
+    setGroupMembers(prev => prev.filter(m => m.id !== userId));
     loadGroups();
   };
 
@@ -358,10 +387,10 @@ export default function AdminMessages() {
               </div>
             )
           ) : showNewGroup ? (
-            <div className="flex-1 flex flex-col p-6 gap-4">
+            <div className="flex-1 flex flex-col p-6 gap-4 overflow-y-auto">
               <div className="flex items-center justify-between">
                 <h3 className="font-bold text-slate-900">Create Group Chat</h3>
-                <button onClick={() => setShowNewGroup(false)} className="p-1 text-slate-400 hover:text-slate-700"><X size={18} /></button>
+                <button onClick={() => { setShowNewGroup(false); setNewGroupMemberIds([]); }} className="p-1 text-slate-400 hover:text-slate-700"><X size={18} /></button>
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Group Name *</label>
@@ -376,11 +405,33 @@ export default function AdminMessages() {
                 <p className="text-xs text-slate-400 mb-2">All admins are always added. Choose a role to auto-populate with matching interns.</p>
                 <div className="relative">
                   <select value={newGroup.role_filter} onChange={e => setNewGroup(p => ({ ...p, role_filter: e.target.value }))} className="w-full appearance-none px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 bg-white">
-                    <option value="">Admins only (add interns manually)</option>
+                    <option value="">Admins only (add interns manually below)</option>
                     {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                   </select>
                   <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Add specific members</label>
+                <p className="text-xs text-slate-400 mb-2">Optionally add individual people regardless of their role.</p>
+                <div className="max-h-44 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100">
+                  {contacts.length === 0 && <p className="text-xs text-slate-400 p-3">No contacts found</p>}
+                  {contacts.map(c => (
+                    <label key={c.id} className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-slate-50 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={newGroupMemberIds.includes(c.id)}
+                        onChange={() => setNewGroupMemberIds(prev => prev.includes(c.id) ? prev.filter(id => id !== c.id) : [...prev, c.id])}
+                        className="accent-peach-500"
+                      />
+                      <span className="text-sm text-slate-800">{c.name}</span>
+                      <span className="text-xs text-slate-400 capitalize ml-auto">{c.role}</span>
+                    </label>
+                  ))}
+                </div>
+                {newGroupMemberIds.length > 0 && (
+                  <p className="text-xs text-slate-500 mt-1.5">{newGroupMemberIds.length} individual{newGroupMemberIds.length !== 1 ? 's' : ''} selected</p>
+                )}
               </div>
               <button onClick={createGroup} disabled={!newGroup.name.trim() || groupCreating} className="flex items-center gap-2 px-6 py-3 rounded-xl bg-peach-500 text-sm font-bold text-white hover:bg-peach-600 transition-colors disabled:opacity-50 self-start mt-2">
                 <Plus size={16} />{groupCreating ? 'Creating...' : 'Create Group'}
@@ -472,7 +523,7 @@ export default function AdminMessages() {
                   <p className="text-xs text-slate-400">{activeGroup?.member_count} members{activeGroup?.role_filter ? ` · ${activeGroup.role_filter === 'all' ? 'All Interns' : activeGroup.role_filter}` : ''}</p>
                 </div>
                 <button
-                  onClick={() => setShowMembers(v => !v)}
+                  onClick={() => { setShowMembers(v => !v); setShowAddMember(false); setAddMemberSearch(''); }}
                   className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors", showMembers ? "bg-peach-100 text-peach-700" : "bg-slate-100 text-slate-600 hover:bg-slate-200")}
                 >
                   <Users size={13} />{showMembers ? 'Hide' : 'Members'}
@@ -480,13 +531,57 @@ export default function AdminMessages() {
               </div>
               {showMembers && (
                 <div className="border-b border-slate-100 px-4 py-3 bg-slate-50/60">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Group Members ({groupMembers.length})</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Group Members ({groupMembers.length})</p>
+                    <button
+                      onClick={() => { setShowAddMember(v => !v); setAddMemberSearch(''); }}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-peach-50 text-peach-600 hover:bg-peach-100 text-xs font-semibold transition-colors"
+                    >
+                      <Plus size={11} /> Add Member
+                    </button>
+                  </div>
+                  {showAddMember && (
+                    <div className="mb-3">
+                      <input
+                        value={addMemberSearch}
+                        onChange={e => setAddMemberSearch(e.target.value)}
+                        placeholder="Search by name…"
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-peach-400 mb-1.5"
+                      />
+                      <div className="max-h-32 overflow-y-auto border border-slate-200 rounded-lg divide-y divide-slate-100 bg-white">
+                        {contacts
+                          .filter(c => !groupMembers.some(m => m.id === c.id) && (!addMemberSearch.trim() || c.name.toLowerCase().includes(addMemberSearch.toLowerCase())))
+                          .map(c => (
+                            <button
+                              key={c.id}
+                              disabled={addingMember}
+                              onClick={() => addMemberToGroup(c.id)}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-peach-50 transition-colors disabled:opacity-50"
+                            >
+                              <div className="h-5 w-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] font-bold shrink-0">{c.name[0]}</div>
+                              <span className="text-xs font-medium text-slate-800 flex-1">{c.name}</span>
+                              <span className="text-[10px] text-slate-400 capitalize">{c.role}</span>
+                            </button>
+                          ))}
+                        {contacts.filter(c => !groupMembers.some(m => m.id === c.id) && (!addMemberSearch.trim() || c.name.toLowerCase().includes(addMemberSearch.toLowerCase()))).length === 0 && (
+                          <p className="text-xs text-slate-400 px-3 py-2">{addMemberSearch.trim() ? 'No matches' : 'All contacts are already members'}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   <div className="flex flex-wrap gap-2">
                     {groupMembers.map(m => (
-                      <div key={m.id} className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-1">
+                      <div key={m.id} className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2 py-1 group/chip">
                         <div className="h-5 w-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] font-bold">{m.name[0]}</div>
                         <span className="text-xs font-medium text-slate-700">{m.name}</span>
                         <span className="text-[10px] text-slate-400 capitalize">{m.role}</span>
+                        <button
+                          onClick={() => removeMemberFromGroup(m.id)}
+                          className="ml-0.5 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover/chip:opacity-100"
+                          title={`Remove ${m.name}`}
+                        >
+                          <X size={11} />
+                        </button>
                       </div>
                     ))}
                   </div>

@@ -994,7 +994,7 @@ export async function buildApp() {
 
   // POST /api/admin/messages/groups — create a group (admin only)
   app.post("/api/admin/messages/groups", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
-    const { name, description, role_filter } = req.body;
+    const { name, description, role_filter, member_ids } = req.body;
     if (!name) return res.status(400).json({ message: "name required" });
     const id = crypto.randomUUID();
     await db.execute({
@@ -1020,6 +1020,14 @@ export async function buildApp() {
       const internsResult = await db.execute({ sql: internSql, args: internArgs });
       for (const intern of internsResult.rows as any[]) {
         await db.execute({ sql: "INSERT OR IGNORE INTO message_group_members (group_id, user_id) VALUES (?, ?)", args: [id, intern.id] });
+      }
+    }
+    // Add any explicitly specified individual members
+    if (Array.isArray(member_ids)) {
+      for (const uid of member_ids) {
+        if (uid) {
+          await db.execute({ sql: "INSERT OR IGNORE INTO message_group_members (group_id, user_id) VALUES (?, ?)", args: [id, uid] });
+        }
       }
     }
     res.status(201).json({ id, message: "Group created" });

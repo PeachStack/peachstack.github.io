@@ -40,12 +40,16 @@ export default function Tasks() {
   const filtered = tasks.filter(t => !search || t.title.toLowerCase().includes(search.toLowerCase()) || t.assignee_name?.toLowerCase().includes(search.toLowerCase()));
 
   const updateStatus = async (taskId: string, newStatus: string) => {
-    await fetch(apiUrl(`/api/admin/tasks/${taskId}`), {
+    const prevTasks = tasks;
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+    const res = await fetch(apiUrl(`/api/admin/tasks/${taskId}`), {
       method: 'PATCH', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus }),
     });
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+    if (!res.ok) {
+      setTasks(prevTasks);
+    }
   };
 
   const handleDelete = async () => {

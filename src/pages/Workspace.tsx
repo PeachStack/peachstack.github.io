@@ -1,22 +1,9 @@
 import { motion } from 'motion/react';
-import { CheckCircle2, Clock, Calendar, ListTodo, MessageSquare, Save, X, Tag, User, Briefcase } from 'lucide-react';
+import { CheckCircle2, Clock, Calendar, ListTodo, MessageSquare, Save, X, Tag, User } from 'lucide-react';
 import { useState, useEffect, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { apiUrl } from '../lib/api';
-
-interface ApiProject {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  skills_required: string[];
-  compensation?: string;
-  deadline?: string;
-  target_role?: string;
-  my_status?: string | null;
-  assignment_id?: string | null;
-}
 
 interface ApiTask {
   id: string;
@@ -335,11 +322,10 @@ function TaskDetailModal({ task, onClose, onStatusChange }: { task: ApiTask; onC
 
 export default function Workspace() {
   const [tasks, setTasks] = useState<ApiTask[]>([]);
-  const [projects, setProjects] = useState<ApiProject[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [userName, setUserName] = useState('');
+  const [authChecked, setAuthChecked] = useState(false);
   const [loadingTasks, setLoadingTasks] = useState(true);
-  const [loadingProjects, setLoadingProjects] = useState(true);
   const [loadingCalendar, setLoadingCalendar] = useState(true);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
@@ -376,12 +362,6 @@ export default function Workspace() {
         .catch(() => { if (active) setTasks([]); })
         .finally(() => { if (active) setLoadingTasks(false); });
 
-      fetch(apiUrl('/api/workspace/projects'), { credentials: 'include' })
-        .then(r => r.ok ? r.json() : [])
-        .then(data => { if (active) setProjects(Array.isArray(data) ? data : []); })
-        .catch(() => { if (active) setProjects([]); })
-        .finally(() => { if (active) setLoadingProjects(false); });
-
       fetch(apiUrl('/api/workspace/calendar'), { credentials: 'include' })
         .then(r => r.ok ? r.json() : [])
         .then(data => { if (active) setCalendarEvents(Array.isArray(data) ? data : []); })
@@ -405,9 +385,11 @@ export default function Workspace() {
           navigate('/admin/dashboard', { replace: true });
           return;
         }
+        if (active) setAuthChecked(true);
         loadWorkspaceData();
       })
       .catch(() => {
+        if (active) setAuthChecked(true);
         if (active) loadWorkspaceData();
       });
 
@@ -434,31 +416,6 @@ export default function Workspace() {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, status } : t));
   };
 
-  const joinProject = async (id: string) => {
-    await fetch(apiUrl(`/api/workspace/projects/${id}/join`), {
-      method: 'POST', credentials: 'include',
-    });
-    setProjects(prev => prev.map(p => p.id === id ? { ...p, my_status: 'in_progress' } : p));
-  };
-
-  const submitProject = async (id: string) => {
-    await fetch(apiUrl(`/api/workspace/projects/${id}/status`), {
-      method: 'PATCH', credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'in_review' }),
-    });
-    setProjects(prev => prev.map(p => p.id === id ? { ...p, my_status: 'in_review' } : p));
-  };
-
-  const unsubmitProject = async (id: string) => {
-    await fetch(apiUrl(`/api/workspace/projects/${id}/status`), {
-      method: 'PATCH', credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'in_progress' }),
-    });
-    setProjects(prev => prev.map(p => p.id === id ? { ...p, my_status: 'in_progress' } : p));
-  };
-
   const getPriorityLabel = (priority: string) => priority.charAt(0).toUpperCase() + priority.slice(1);
   const getPriorityStyle = (priority: string) => {
     if (priority === 'urgent' || priority === 'high') return 'bg-red-50 text-red-600';
@@ -477,6 +434,14 @@ export default function Workspace() {
   const upcomingEvents = calendarEvents
     .filter(e => new Date(e.event_date) >= new Date(new Date().toDateString()))
     .slice(0, 5);
+
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="h-8 w-8 border-4 border-peach-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20 pt-8">
@@ -541,156 +506,71 @@ export default function Workspace() {
                   <p className="text-xs mt-1">Check back when your admin assigns tasks to you</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {tasks.map((task) => {
                     const isSubmitted = task.status === 'in_review' || task.status === 'completed';
                     const isCompleted = task.status === 'completed';
+                    const projectLabel = task.tags?.[0] ?? null;
                     return (
                       <motion.div
                         key={task.id}
                         layout
                         className={cn(
-                          "flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-4 transition-all",
-                          isCompleted ? "opacity-60 grayscale" : "hover:shadow-sm"
+                          "rounded-2xl border border-slate-100 bg-white p-5 transition-all",
+                          isCompleted ? "opacity-60 grayscale" : "hover:shadow-md hover:border-peach-100"
                         )}
                       >
-                        <button
-                          disabled={isCompleted}
-                          onClick={() => updateTaskStatus(task.id, isSubmitted ? 'in_progress' : 'in_review')}
-                          className={cn(
-                            "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-2 transition-all",
-                            isCompleted
-                              ? "bg-green-500 border-green-500 text-white cursor-not-allowed"
-                              : isSubmitted
-                              ? "bg-peach-500 border-peach-500 text-white hover:bg-peach-600"
-                              : "border-slate-200 hover:border-peach-500"
-                          )}
-                          title={isCompleted ? 'Completed by admin' : isSubmitted ? 'Click to take back' : 'Mark as done'}
-                        >
-                          {isSubmitted && <CheckCircle2 size={14} />}
-                        </button>
-                        <button
-                          className="flex-grow text-left"
-                          onClick={() => setSelectedTask(task)}
-                        >
-                          <h4 className={cn("text-sm font-bold text-slate-900 hover:text-peach-600 transition-colors", isCompleted && "line-through")}>
-                            {task.title}
-                          </h4>
-                          {task.creator_name && <p className="text-xs text-slate-500">From: {task.creator_name}</p>}
-                        </button>
-                        <div className="flex items-center gap-4 shrink-0">
+                        <div className="flex items-start gap-4">
+                          <button
+                            disabled={isCompleted}
+                            onClick={() => updateTaskStatus(task.id, isSubmitted ? 'in_progress' : 'in_review')}
+                            className={cn(
+                              "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-2 transition-all",
+                              isCompleted
+                                ? "bg-green-500 border-green-500 text-white cursor-not-allowed"
+                                : isSubmitted
+                                ? "bg-peach-500 border-peach-500 text-white hover:bg-peach-600"
+                                : "border-slate-200 hover:border-peach-500"
+                            )}
+                            title={isCompleted ? 'Completed by admin' : isSubmitted ? 'Click to take back' : 'Mark as done'}
+                          >
+                            {isSubmitted && <CheckCircle2 size={14} />}
+                          </button>
+                          <button
+                            className="flex-grow text-left"
+                            onClick={() => setSelectedTask(task)}
+                          >
+                            {projectLabel && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-peach-600 bg-peach-50 px-2 py-0.5 rounded mb-1.5">
+                                <Tag size={9} />
+                                {projectLabel}
+                              </span>
+                            )}
+                            <h4 className={cn("text-base font-bold text-slate-900 hover:text-peach-600 transition-colors leading-snug", isCompleted && "line-through")}>
+                              {task.title}
+                            </h4>
+                            {task.description && (
+                              <p className="text-sm text-slate-500 mt-1 line-clamp-2 leading-relaxed">{task.description}</p>
+                            )}
+                            {task.creator_name && <p className="text-xs text-slate-400 mt-1.5">Assigned by {task.creator_name}</p>}
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-3 mt-3 pl-10 flex-wrap">
                           {task.due_date && (
-                            <div className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-slate-400">
-                              <Clock size={14} />
-                              {new Date(task.due_date).toLocaleDateString()}
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400">
+                              <Clock size={12} />
+                              Due {new Date(task.due_date).toLocaleDateString()}
                             </div>
                           )}
-                          <span className={cn("rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wider", getPriorityStyle(task.priority))}>
+                          {task.estimated_hours && (
+                            <span className="text-xs text-slate-400">{task.estimated_hours}h</span>
+                          )}
+                          <span className={cn("rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", getPriorityStyle(task.priority))}>
                             {getPriorityLabel(task.priority)}
                           </span>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
-
-            {/* Projects Section */}
-            <section>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="font-display text-xl font-bold text-slate-900 flex items-center gap-2">
-                  <Briefcase className="text-peach-500" size={20} />
-                  Your Projects
-                </h2>
-              </div>
-              {loadingProjects ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="h-7 w-7 border-4 border-peach-500 border-t-transparent rounded-full animate-spin" />
-                </div>
-              ) : projects.length === 0 ? (
-                <div className="text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-100">
-                  <Briefcase size={28} className="mx-auto mb-2 opacity-40" />
-                  <p className="text-sm font-medium">No projects available yet</p>
-                  <p className="text-xs mt-1">Projects assigned to your role will appear here</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {projects.map((project) => {
-                    const isSubmitted = project.my_status === 'in_review' || project.my_status === 'completed';
-                    const isCompleted = project.my_status === 'completed';
-                    const isJoined = !!project.my_status;
-                    return (
-                      <motion.div
-                        key={project.id}
-                        layout
-                        className={cn(
-                          "flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-4 transition-all",
-                          isCompleted ? "opacity-60 grayscale" : "hover:shadow-sm"
-                        )}
-                      >
-                        <button
-                          disabled={isCompleted || !isJoined}
-                          onClick={() => {
-                            if (isSubmitted) unsubmitProject(project.id);
-                            else if (isJoined) submitProject(project.id);
-                          }}
-                          className={cn(
-                            "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-2 transition-all",
-                            isCompleted
-                              ? "bg-green-500 border-green-500 text-white cursor-not-allowed"
-                              : isSubmitted
-                              ? "bg-peach-500 border-peach-500 text-white hover:bg-peach-600"
-                              : isJoined
-                              ? "border-slate-200 hover:border-peach-500"
-                              : "border-slate-100 cursor-default opacity-40"
-                          )}
-                          title={isCompleted ? 'Completed' : isSubmitted ? 'Click to take back' : isJoined ? 'Mark as done' : 'Join project first'}
-                        >
-                          {(isSubmitted || isCompleted) && <CheckCircle2 size={14} />}
-                        </button>
-                        <div className="flex-grow min-w-0">
-                          <div className="flex items-start gap-2">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-peach-50 text-peach-500">
-                              <Briefcase size={14} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className={cn("text-sm font-bold text-slate-900", isCompleted && "line-through")}>{project.title}</h4>
-                              <p className="text-xs text-slate-500 line-clamp-1">{project.description}</p>
-                              {project.skills_required?.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                  {project.skills_required.slice(0, 3).map(skill => (
-                                    <span key={skill} className="px-1.5 py-0.5 bg-peach-50 text-peach-700 rounded text-[10px] font-medium">{skill}</span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {project.deadline && (
-                            <div className="hidden sm:flex items-center gap-1 text-xs font-medium text-slate-400">
-                              <Clock size={12} />
-                              {new Date(project.deadline).toLocaleDateString()}
-                            </div>
-                          )}
-                          {!isJoined ? (
-                            <button
-                              onClick={() => joinProject(project.id)}
-                              className="px-3 py-1 rounded-lg bg-peach-500 text-white text-xs font-bold hover:bg-peach-600 transition-colors"
-                            >
-                              Join
-                            </button>
-                          ) : (
-                            <span className={cn(
-                              "rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wider",
-                              isCompleted ? 'bg-green-50 text-green-600' :
-                              isSubmitted ? 'bg-blue-50 text-blue-600' :
-                              'bg-amber-50 text-amber-600'
-                            )}>
-                              {isCompleted ? 'Done' : isSubmitted ? 'In Review' : 'In Progress'}
-                            </span>
-                          )}
+                          {task.tags.slice(1).map(tag => (
+                            <span key={tag} className="px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px]">{tag}</span>
+                          ))}
                         </div>
                       </motion.div>
                     );

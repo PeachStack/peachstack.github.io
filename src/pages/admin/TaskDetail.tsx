@@ -36,6 +36,7 @@ export default function TaskDetail() {
   const [reviewScore, setReviewScore] = useState('');
   const [reviewing, setReviewing] = useState(false);
   const [reviewError, setReviewError] = useState('');
+  const [statusError, setStatusError] = useState('');
 
   const asDateInput = (value?: string) => {
     if (!value) return '';
@@ -76,12 +77,22 @@ export default function TaskDetail() {
   }, []);
 
   const updateStatus = async (status: string) => {
-    await fetch(apiUrl(`/api/admin/tasks/${id}`), {
-      method: 'PATCH', credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    });
-    reload();
+    setStatusError('');
+    try {
+      const res = await fetch(apiUrl(`/api/admin/tasks/${id}`), {
+        method: 'PATCH', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setStatusError((data as any).message || 'Failed to update status.');
+        return;
+      }
+      reload();
+    } catch {
+      setStatusError('Network error. Could not update status.');
+    }
   };
 
   const addComment = async (e: FormEvent) => {
@@ -142,20 +153,24 @@ export default function TaskDetail() {
         setReviewError('Score must be a number.');
         return;
       }
-      const res = await fetch(apiUrl(`/api/admin/tasks/${id}/review`), {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ decision, feedback: reviewFeedback || null, score }),
-      });
+      let res: Response;
+      try {
+        res = await fetch(apiUrl(`/api/admin/tasks/${id}/review`), {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ decision, feedback: reviewFeedback || null, score }),
+        });
+      } catch {
+        setReviewError('Network error. Check your connection and try again.');
+        return;
+      }
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         setReviewError((data as any).message || 'Failed to submit review.');
         return;
       }
       reload();
-    } catch {
-      setReviewError('Network error. Please try again.');
     } finally {
       setReviewing(false);
     }
@@ -300,6 +315,7 @@ export default function TaskDetail() {
                 <select value={task.status} onChange={e => updateStatus(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400">
                   {['open', 'in_progress', 'in_review', 'completed', 'blocked'].map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
                 </select>
+                {statusError && <p className="text-xs text-red-600 mt-1">{statusError}</p>}
               </div>
               <div>
                 <p className="text-slate-400 text-xs mb-1">Assignee</p>

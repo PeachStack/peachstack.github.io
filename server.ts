@@ -175,6 +175,9 @@ export async function buildApp() {
     if (!['student', 'employer'].includes(role)) {
       return res.status(400).json({ message: "Invalid role" });
     }
+    if (!password || password.length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters" });
+    }
     const id = crypto.randomUUID();
     const hashedPassword = await bcrypt.hash(password, 12);
     try {
@@ -258,7 +261,11 @@ export async function buildApp() {
   // ─── Projects ─────────────────────────────────────────────────────────────────
   app.get("/api/projects", studentApiLimiter, authenticate, async (req, res) => {
     const result = await db.execute({ sql: "SELECT * FROM projects WHERE status = 'open'", args: [] });
-    res.json((result.rows as any[]).map((p) => ({ ...p, skills_required: JSON.parse(p.skills_required || "[]") })));
+    res.json((result.rows as any[]).map((p) => {
+      let skills: string[] = [];
+      try { skills = JSON.parse(p.skills_required || "[]"); } catch { skills = []; }
+      return { ...p, skills_required: skills };
+    }));
   });
 
   app.post("/api/projects", studentApiLimiter, authenticate, async (req: any, res: any) => {
@@ -773,7 +780,11 @@ export async function buildApp() {
   app.get("/api/admin/projects", adminApiLimiter, requireAdmin, async (req, res) => {
     try {
       const result = await db.execute({ sql: "SELECT * FROM projects ORDER BY created_at DESC", args: [] });
-      res.json((result.rows as any[]).map((p) => ({ ...p, skills_required: JSON.parse(p.skills_required || "[]") })));
+      res.json((result.rows as any[]).map((p) => {
+        let skills: string[] = [];
+        try { skills = JSON.parse(p.skills_required || "[]"); } catch { skills = []; }
+        return { ...p, skills_required: skills };
+      }));
     } catch (err: any) {
       res.status(500).json({ message: err.message || "Failed to load projects" });
     }
@@ -901,24 +912,22 @@ export async function buildApp() {
     }
 
     const id = crypto.randomUUID();
-    await db.execute({
-      sql: "INSERT INTO messages (id, sender_id, recipient_id, subject, body) VALUES (?, ?, ?, ?, ?)",
-      args: [id, req.user.id, recipient_id, subject || null, body],
-    });
-
-    // Upsert thread record
-    const threadResult = await db.execute({
-      sql: "SELECT id FROM message_threads WHERE (participant_one = ? AND participant_two = ?) OR (participant_one = ? AND participant_two = ?)",
-      args: [req.user.id, recipient_id, recipient_id, req.user.id],
-    });
-    if (threadResult.rows.length > 0) {
-      const thread = threadResult.rows[0] as any;
-      await db.execute({ sql: "UPDATE message_threads SET last_message_at = CURRENT_TIMESTAMP WHERE id = ?", args: [thread.id] });
-    } else {
-      await db.execute({
-        sql: "INSERT INTO message_threads (id, participant_one, participant_two) VALUES (?, ?, ?)",
-        args: [crypto.randomUUID(), req.user.id, recipient_id],
+    try {
+      // Check if thread exists first, then use db.batch() for atomic insert + thread upsert
+      const threadResult = await db.execute({
+        sql: "SELECT id FROM message_threads WHERE (participant_one = ? AND participant_two = ?) OR (participant_one = ? AND participant_two = ?)",
+        args: [req.user.id, recipient_id, recipient_id, req.user.id],
       });
+      const threadId = threadResult.rows.length > 0 ? (threadResult.rows[0] as any).id : crypto.randomUUID();
+      const threadSql = threadResult.rows.length > 0
+        ? { sql: "UPDATE message_threads SET last_message_at = CURRENT_TIMESTAMP WHERE id = ?", args: [threadId] as any[] }
+        : { sql: "INSERT INTO message_threads (id, participant_one, participant_two) VALUES (?, ?, ?)", args: [threadId, req.user.id, recipient_id] as any[] };
+      await db.batch([
+        { sql: "INSERT INTO messages (id, sender_id, recipient_id, subject, body) VALUES (?, ?, ?, ?, ?)", args: [id, req.user.id, recipient_id, subject || null, body] },
+        threadSql,
+      ]);
+    } catch (err: any) {
+      return res.status(500).json({ message: err.message || "Failed to send message" });
     }
 
     res.status(201).json({ id });
@@ -1281,11 +1290,21 @@ export async function buildApp() {
   });
 
   app.patch("/api/workspace/tasks/:id/submit", studentApiLimiter, authenticate, async (req: any, res: any) => {
-    const { submission_url, submission_note } = req.body;
+    const { submission_url, submission_note, status } = req.body;
     const taskResult = await db.execute({ sql: "SELECT * FROM tasks WHERE id = ?", args: [req.params.id] });
     const task = taskResult.rows[0] as any;
     if (!task) return res.status(404).json({ message: "Not found" });
     if (task.assigned_to !== req.user.id) return res.status(403).json({ message: "Not authorized" });
+
+    // Allow intern to take back a submitted task (revert to in_progress)
+    if (status === 'in_progress') {
+      await db.execute({
+        sql: "UPDATE tasks SET submission_url = NULL, submission_note = NULL, status = 'in_progress', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        args: [req.params.id],
+      });
+      return res.json({ message: "Task taken back" });
+    }
+
     await db.execute({
       sql: "UPDATE tasks SET submission_url = ?, submission_note = ?, status = 'in_review', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
       args: [submission_url || null, submission_note || null, req.params.id],
@@ -1323,7 +1342,7 @@ export async function buildApp() {
     let sql = `SELECT p.*, pa.status as my_status, pa.id as assignment_id
                FROM projects p
                LEFT JOIN project_assignments pa ON pa.project_id = p.id AND pa.user_id = ?
-               WHERE p.status != 'closed' AND (p.target_role = 'all'`;
+               WHERE p.status != 'closed' AND (p.target_role = 'all' OR p.target_role IS NULL`;
     const args: any[] = [req.user.id];
     if (internRole) {
       sql += " OR p.target_role = ?";
@@ -1331,7 +1350,11 @@ export async function buildApp() {
     }
     sql += ") ORDER BY p.created_at DESC";
     const result = await db.execute({ sql, args });
-    res.json((result.rows as any[]).map((p) => ({ ...p, skills_required: JSON.parse(p.skills_required || "[]") })));
+    res.json((result.rows as any[]).map((p) => {
+      let skills: string[] = [];
+      try { skills = JSON.parse(p.skills_required || "[]"); } catch { skills = []; }
+      return { ...p, skills_required: skills };
+    }));
   });
 
   // POST /api/workspace/projects/:id/join — join a project (creates an assignment)

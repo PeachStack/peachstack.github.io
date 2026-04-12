@@ -262,11 +262,16 @@ export async function initDb() {
   });
 
   // Upsert the superadmin to match the ADMIN_PASSWORD env var.
-  // We store a fast fingerprint of the source password so we can skip the
-  // expensive bcrypt.hash on every cold start when nothing has changed.
+  // We store a keyed HMAC-SHA-256 fingerprint of the source password (keyed with
+  // JWT_SECRET) so we can skip the expensive bcrypt.hash on every cold start when
+  // nothing has changed.  Using HMAC prevents reversing the fingerprint without
+  // knowing JWT_SECRET, addressing the concern of leaking password information.
   const passwordSource = process.env.ADMIN_PASSWORD || '!Peach$Stack$2026';
-  const { createHash } = await import('crypto');
-  const passwordFingerprint = createHash('sha256').update(passwordSource).digest('hex').substring(0, 32);
+  const { createHmac } = await import('crypto');
+  const passwordFingerprint = createHmac('sha256', process.env.JWT_SECRET || 'nokey')
+    .update(passwordSource)
+    .digest('hex')
+    .substring(0, 32);
 
   const fpResult = await db.execute({
     sql: "SELECT value FROM platform_settings WHERE key = 'admin_pw_fp'",

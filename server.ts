@@ -162,11 +162,10 @@ export async function buildApp() {
     } catch {
       return res.status(503).json({ message: "Service temporarily unavailable. Please try again." });
     }
-    decoded.isSuperadmin = decoded.role === "superadmin";
-    if (decoded.role !== "superadmin" && !decoded.isSuperadmin) {
+    req.user = decoded;
+    if (req.user.role !== "superadmin" && !req.user.isSuperadmin) {
       return res.status(403).json({ message: "Superadmin access required" });
     }
-    req.user = decoded;
     next();
   };
 

@@ -42,7 +42,6 @@ const AdminInternDetail = lazy(() => import('./pages/admin/InternDetail'));
 const AdminTasks = lazy(() => import('./pages/admin/Tasks'));
 const AdminTaskCreate = lazy(() => import('./pages/admin/TaskCreate'));
 const AdminTaskDetail = lazy(() => import('./pages/admin/TaskDetail'));
-const AdminProjects = lazy(() => import('./pages/admin/Projects'));
 const AdminCohorts = lazy(() => import('./pages/admin/Cohorts'));
 const AdminCommunications = lazy(() => import('./pages/admin/Communications'));
 const AdminAnalytics = lazy(() => import('./pages/admin/Analytics'));
@@ -494,7 +493,6 @@ function MainApp() {
             <Route path="tasks" element={<AdminTasks />} />
             <Route path="tasks/create" element={<AdminTaskCreate />} />
             <Route path="tasks/:id" element={<AdminTaskDetail />} />
-            <Route path="projects" element={<AdminProjects />} />
             <Route path="cohorts" element={<AdminCohorts />} />
             <Route path="communications" element={<AdminCommunications />} />
             <Route path="analytics" element={<AdminAnalytics />} />

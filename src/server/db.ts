@@ -245,28 +245,50 @@ export async function initDb() {
     );
   `);
 
-  // Add missing columns to existing tables (safe to run multiple times)
-  try { await db.execute({ sql: "ALTER TABLE projects ADD COLUMN target_role TEXT DEFAULT 'all'", args: [] }); } catch { /* column already exists */ }
-  try { await db.execute({ sql: "ALTER TABLE projects ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP", args: [] }); } catch { /* column already exists */ }
-  try { await db.execute({ sql: "ALTER TABLE projects ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP", args: [] }); } catch { /* column already exists */ }
-  try { await db.execute({ sql: "ALTER TABLE projects ADD COLUMN created_by TEXT", args: [] }); } catch { /* column already exists */ }
-  try { await db.execute({ sql: "ALTER TABLE tasks ADD COLUMN estimated_hours REAL", args: [] }); } catch { /* column already exists */ }
-  try { await db.execute({ sql: "ALTER TABLE tasks ADD COLUMN actual_hours REAL", args: [] }); } catch { /* column already exists */ }
-
-  // Always upsert the superadmin so the password matches the ADMIN_PASSWORD env var
-  // (important after account renames or env-var changes on a new deployment).
-  const bcrypt = await import('bcryptjs');
-  const adminPassword = await bcrypt.default.hash(process.env.ADMIN_PASSWORD || '!Peach$Stack$2026', 12);
-  await db.execute({
-    sql: `INSERT OR REPLACE INTO users (id, email, password, role, name, is_active, token_version)
-          VALUES ('admin-1', 'peachstackadmin@gmail.com', ?, 'superadmin', 'Peach Stack Admin', 1,
-            COALESCE((SELECT token_version FROM users WHERE id = 'admin-1'), 0))`,
-    args: [adminPassword],
-  });
+  // Add missing columns to existing tables — run all migrations in parallel (safe, each failure is ignored).
+  await Promise.allSettled([
+    db.execute({ sql: "ALTER TABLE projects ADD COLUMN target_role TEXT DEFAULT 'all'", args: [] }),
+    db.execute({ sql: "ALTER TABLE projects ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP", args: [] }),
+    db.execute({ sql: "ALTER TABLE projects ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP", args: [] }),
+    db.execute({ sql: "ALTER TABLE projects ADD COLUMN created_by TEXT", args: [] }),
+    db.execute({ sql: "ALTER TABLE tasks ADD COLUMN estimated_hours REAL", args: [] }),
+    db.execute({ sql: "ALTER TABLE tasks ADD COLUMN actual_hours REAL", args: [] }),
+  ]);
 
   // Seed default platform settings
   await db.execute({
     sql: `INSERT OR IGNORE INTO platform_settings (key, value) VALUES ('allow_intern_to_intern_messaging', 'false')`,
     args: [],
   });
+
+  // Upsert the superadmin only when the ADMIN_PASSWORD env var or ADMIN_PASSWORD_VERSION
+  // changes — skipping the expensive bcrypt.hash on every cold start.
+  //
+  // To rotate the admin password:
+  //   1. Set the new ADMIN_PASSWORD env var.
+  //   2. Bump ADMIN_PASSWORD_VERSION (e.g. 1 → 2) so the next cold start detects the change.
+  const adminPwVersion = process.env.ADMIN_PASSWORD_VERSION || '1';
+  const fpKey = `v${adminPwVersion}`;
+
+  const fpResult = await db.execute({
+    sql: "SELECT value FROM platform_settings WHERE key = 'admin_pw_fp'",
+    args: [],
+  });
+  const storedFp = fpResult.rows.length > 0 ? (fpResult.rows[0] as any).value : null;
+
+  if (storedFp !== fpKey) {
+    // Password version changed or first boot — hash and upsert (slow path, runs rarely).
+    const bcrypt = await import('bcryptjs');
+    const adminPassword = await bcrypt.default.hash(process.env.ADMIN_PASSWORD || '!Peach$Stack$2026', 12);
+    await db.execute({
+      sql: `INSERT OR REPLACE INTO users (id, email, password, role, name, is_active, token_version)
+            VALUES ('admin-1', 'peachstackadmin@gmail.com', ?, 'superadmin', 'Peach Stack Admin', 1,
+              COALESCE((SELECT token_version FROM users WHERE id = 'admin-1'), 0))`,
+      args: [adminPassword],
+    });
+    await db.execute({
+      sql: "INSERT OR REPLACE INTO platform_settings (key, value) VALUES ('admin_pw_fp', ?)",
+      args: [fpKey],
+    });
+  }
 }

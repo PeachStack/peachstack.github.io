@@ -71,68 +71,102 @@ export async function buildApp() {
   };
   app.use(csrfCheck);
 
+  // ─── In-memory auth cache ────────────────────────────────────────────────────
+  // Caches DB user lookups for 30 s per user-id to reduce round-trips to Turso
+  // on every authenticated request.  Cache is per serverless instance.
+  const AUTH_CACHE_TTL = 30_000;
+  const authCache = new Map<string, { tokenVersion: number; isActive: boolean; expiresAt: number }>();
+
+  async function getAuthUser(userId: string) {
+    const cached = authCache.get(userId);
+    if (cached && cached.expiresAt > Date.now()) return cached;
+    const result = await db.execute({ sql: "SELECT is_active, token_version FROM users WHERE id = ?", args: [userId] });
+    const row = result.rows[0] as any;
+    if (!row) return null;
+    const entry = { tokenVersion: row.token_version as number, isActive: !!row.is_active, expiresAt: Date.now() + AUTH_CACHE_TTL };
+    authCache.set(userId, entry);
+    return entry;
+  }
+
+  // Evict a user from the auth cache (call after token_version bump or deactivation).
+  function evictAuthCache(userId: string) { authCache.delete(userId); }
+
   // ─── Auth middleware ─────────────────────────────────────────────────────────
   const authenticate = async (req: any, res: any, next: any) => {
     const token = req.cookies.token;
     if (!token) return res.status(401).json({ message: "Not authenticated" });
+    let decoded: any;
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as any;
-      const result = await db.execute({ sql: "SELECT is_active, token_version FROM users WHERE id = ?", args: [decoded.id] });
-      const user = result.rows[0] as any;
-      if (!user || !user.is_active) return res.status(403).json({ message: "Account deactivated" });
-      if (decoded.tokenVersion !== undefined && decoded.tokenVersion !== user.token_version) {
+      decoded = jwt.verify(token, JWT_SECRET) as any;
+    } catch {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+    try {
+      const user = await getAuthUser(decoded.id);
+      if (!user || !user.isActive) return res.status(403).json({ message: "Account deactivated" });
+      if (decoded.tokenVersion !== undefined && decoded.tokenVersion !== user.tokenVersion) {
         return res.status(401).json({ message: "Session expired" });
       }
-      req.user = decoded;
-      next();
-    } catch (error) {
-      res.status(401).json({ message: "Invalid token" });
+    } catch {
+      // DB error — fail closed with a 503 so callers know it's a server issue,
+      // not an auth issue, and don't redirect the user to the login page.
+      return res.status(503).json({ message: "Service temporarily unavailable. Please try again." });
     }
+    req.user = decoded;
+    next();
   };
 
   const requireAdmin = async (req: any, res: any, next: any) => {
     const token = req.cookies.token;
     if (!token) return res.status(401).json({ message: "Not authenticated" });
+    let decoded: any;
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as any;
-      if (decoded.role !== "admin" && decoded.role !== "superadmin" && !decoded.isAdmin) {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-      const result = await db.execute({ sql: "SELECT token_version, is_active FROM users WHERE id = ?", args: [decoded.id] });
-      const user = result.rows[0] as any;
-      if (!user || !user.is_active) return res.status(403).json({ message: "Account deactivated" });
-      if (user.token_version !== undefined && decoded.tokenVersion !== undefined && decoded.tokenVersion !== user.token_version) {
+      decoded = jwt.verify(token, JWT_SECRET) as any;
+    } catch {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+    if (decoded.role !== "admin" && decoded.role !== "superadmin" && !decoded.isAdmin) {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+    try {
+      const user = await getAuthUser(decoded.id);
+      if (!user || !user.isActive) return res.status(403).json({ message: "Account deactivated" });
+      if (user.tokenVersion !== undefined && decoded.tokenVersion !== undefined && decoded.tokenVersion !== user.tokenVersion) {
         return res.status(401).json({ message: "Session expired" });
       }
-      req.user = decoded;
-      next();
-    } catch (error) {
-      res.status(401).json({ message: "Invalid token" });
+    } catch {
+      return res.status(503).json({ message: "Service temporarily unavailable. Please try again." });
     }
+    req.user = decoded;
+    next();
   };
 
   const requireSuperadmin = async (req: any, res: any, next: any) => {
     const token = req.cookies.token;
     if (!token) return res.status(401).json({ message: "Not authenticated" });
+    let decoded: any;
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as any;
-      if (decoded.role !== "admin" && decoded.role !== "superadmin" && !decoded.isAdmin) {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-      const result = await db.execute({ sql: "SELECT token_version, is_active FROM users WHERE id = ?", args: [decoded.id] });
-      const user = result.rows[0] as any;
-      if (!user || !user.is_active) return res.status(403).json({ message: "Account deactivated" });
-      if (user.token_version !== undefined && decoded.tokenVersion !== undefined && decoded.tokenVersion !== user.token_version) {
+      decoded = jwt.verify(token, JWT_SECRET) as any;
+    } catch {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+    if (decoded.role !== "admin" && decoded.role !== "superadmin" && !decoded.isAdmin) {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+    try {
+      const user = await getAuthUser(decoded.id);
+      if (!user || !user.isActive) return res.status(403).json({ message: "Account deactivated" });
+      if (user.tokenVersion !== undefined && decoded.tokenVersion !== undefined && decoded.tokenVersion !== user.tokenVersion) {
         return res.status(401).json({ message: "Session expired" });
       }
-      req.user = decoded;
-      if (req.user.role !== "superadmin" && !req.user.isSuperadmin) {
-        return res.status(403).json({ message: "Superadmin access required" });
-      }
-      next();
-    } catch (error) {
-      res.status(401).json({ message: "Invalid token" });
+    } catch {
+      return res.status(503).json({ message: "Service temporarily unavailable. Please try again." });
     }
+    req.user = decoded;
+    if (req.user.role !== "superadmin" && !req.user.isSuperadmin) {
+      return res.status(403).json({ message: "Superadmin access required" });
+    }
+    next();
   };
 
   // ─── Public Auth Routes ───────────────────────────────────────────────────────
@@ -392,6 +426,7 @@ export async function buildApp() {
 
   app.delete("/api/admin/team/:id", adminApiLimiter, requireSuperadmin, async (req, res) => {
     await db.execute({ sql: "UPDATE users SET is_active = 0, token_version = token_version + 1 WHERE id = ?", args: [req.params.id] });
+    evictAuthCache(req.params.id);
     res.json({ message: "Account deactivated" });
   });
 
@@ -432,16 +467,19 @@ export async function buildApp() {
     if (email) await db.execute({ sql: "UPDATE users SET email = ? WHERE id = ?", args: [email, req.params.id] });
     if (is_active !== undefined) {
       await db.execute({ sql: "UPDATE users SET is_active = ?, token_version = token_version + 1 WHERE id = ?", args: [is_active ? 1 : 0, req.params.id] });
+      evictAuthCache(req.params.id);
     }
     if (password) {
       const hashed = await bcrypt.hash(password, 12);
       await db.execute({ sql: "UPDATE users SET password = ?, token_version = token_version + 1 WHERE id = ?", args: [hashed, req.params.id] });
+      evictAuthCache(req.params.id);
     }
     res.json({ message: "User updated" });
   });
 
   app.delete("/api/admin/users/:id", adminApiLimiter, requireSuperadmin, async (req, res) => {
     await db.execute({ sql: "UPDATE users SET is_active = 0, token_version = token_version + 1 WHERE id = ?", args: [req.params.id] });
+    evictAuthCache(req.params.id);
     res.json({ message: "User deactivated" });
   });
 
@@ -506,28 +544,34 @@ export async function buildApp() {
     const { is_active } = req.body;
     if (is_active !== undefined) {
       await db.execute({ sql: "UPDATE users SET is_active = ?, token_version = token_version + 1 WHERE id = ?", args: [is_active ? 1 : 0, req.params.id] });
+      evictAuthCache(req.params.id);
     }
     res.json({ message: "Updated" });
   });
 
   app.delete("/api/admin/interns/:id", adminApiLimiter, requireAdmin, async (req, res) => {
-    const internResult = await db.execute({ sql: "SELECT id FROM users WHERE id = ? AND role = 'student'", args: [req.params.id] });
-    if (internResult.rows.length === 0) return res.status(404).json({ message: "Intern not found" });
-    const id = req.params.id;
-    // Unassign tasks rather than delete them
-    await db.execute({ sql: "UPDATE tasks SET assigned_to = NULL WHERE assigned_to = ?", args: [id] });
-    // Clean up all related data
-    await db.execute({ sql: "DELETE FROM task_comments WHERE user_id = ?", args: [id] });
-    await db.execute({ sql: "DELETE FROM task_activity_log WHERE user_id = ?", args: [id] });
-    await db.execute({ sql: "DELETE FROM notifications WHERE user_id = ?", args: [id] });
-    await db.execute({ sql: "DELETE FROM message_group_members WHERE user_id = ?", args: [id] });
-    await db.execute({ sql: "DELETE FROM group_message_reads WHERE user_id = ?", args: [id] });
-    await db.execute({ sql: "DELETE FROM messages WHERE sender_id = ? OR recipient_id = ?", args: [id, id] });
-    await db.execute({ sql: "DELETE FROM message_threads WHERE participant_one = ? OR participant_two = ?", args: [id, id] });
-    await db.execute({ sql: "DELETE FROM project_assignments WHERE user_id = ?", args: [id] });
-    await db.execute({ sql: "DELETE FROM student_profiles WHERE user_id = ?", args: [id] });
-    await db.execute({ sql: "DELETE FROM users WHERE id = ? AND role = 'student'", args: [id] });
-    res.json({ message: "Intern account permanently deleted" });
+    try {
+      const internResult = await db.execute({ sql: "SELECT id FROM users WHERE id = ? AND role = 'student'", args: [req.params.id] });
+      if (internResult.rows.length === 0) return res.status(404).json({ message: "Intern not found" });
+      const id = req.params.id;
+      evictAuthCache(id);
+      // Unassign tasks rather than delete them
+      await db.execute({ sql: "UPDATE tasks SET assigned_to = NULL WHERE assigned_to = ?", args: [id] });
+      // Clean up all related data
+      await db.execute({ sql: "DELETE FROM task_comments WHERE user_id = ?", args: [id] });
+      await db.execute({ sql: "DELETE FROM task_activity_log WHERE user_id = ?", args: [id] });
+      await db.execute({ sql: "DELETE FROM notifications WHERE user_id = ?", args: [id] });
+      await db.execute({ sql: "DELETE FROM message_group_members WHERE user_id = ?", args: [id] });
+      await db.execute({ sql: "DELETE FROM group_message_reads WHERE user_id = ?", args: [id] });
+      await db.execute({ sql: "DELETE FROM messages WHERE sender_id = ? OR recipient_id = ?", args: [id, id] });
+      await db.execute({ sql: "DELETE FROM message_threads WHERE participant_one = ? OR participant_two = ?", args: [id, id] });
+      await db.execute({ sql: "DELETE FROM project_assignments WHERE user_id = ?", args: [id] });
+      await db.execute({ sql: "DELETE FROM student_profiles WHERE user_id = ?", args: [id] });
+      await db.execute({ sql: "DELETE FROM users WHERE id = ? AND role = 'student'", args: [id] });
+      res.json({ message: "Intern account permanently deleted" });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to delete intern" });
+    }
   });
 
   app.post("/api/admin/interns/:id/notes", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
@@ -732,8 +776,12 @@ export async function buildApp() {
 
   // ─── Admin Projects ────────────────────────────────────────────────────────────
   app.get("/api/admin/projects", adminApiLimiter, requireAdmin, async (req, res) => {
-    const result = await db.execute({ sql: "SELECT * FROM projects ORDER BY created_at DESC", args: [] });
-    res.json((result.rows as any[]).map((p) => ({ ...p, skills_required: JSON.parse(p.skills_required || "[]") })));
+    try {
+      const result = await db.execute({ sql: "SELECT * FROM projects ORDER BY created_at DESC", args: [] });
+      res.json((result.rows as any[]).map((p) => ({ ...p, skills_required: JSON.parse(p.skills_required || "[]") })));
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to load projects" });
+    }
   });
 
   app.post("/api/admin/projects", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
@@ -1386,6 +1434,7 @@ export async function buildApp() {
     if (!valid) return res.status(401).json({ message: "Current password is incorrect" });
     const hashed = await bcrypt.hash(newPassword, 12);
     await db.execute({ sql: "UPDATE users SET password = ?, token_version = token_version + 1 WHERE id = ?", args: [hashed, req.user.id] });
+    evictAuthCache(req.user.id);
     // Re-fetch updated token_version and issue a new JWT so the session stays valid after the password change
     const updated = await db.execute({ sql: "SELECT token_version FROM users WHERE id = ?", args: [req.user.id] });
     const tokenVersion = (updated.rows[0] as any).token_version;

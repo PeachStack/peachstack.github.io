@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Send } from 'lucide-react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Send, Trash2 } from 'lucide-react';
 import { apiUrl } from '../../lib/api';
 import StatusBadge from '../../components/admin/StatusBadge';
 import PriorityBadge from '../../components/admin/PriorityBadge';
@@ -17,10 +17,13 @@ interface Task {
 
 export default function TaskDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const reload = () => {
     fetch(apiUrl(`/api/admin/tasks/${id}`), { credentials: 'include' })
@@ -52,15 +55,48 @@ export default function TaskDetail() {
     setSubmitting(false);
   };
 
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch(apiUrl(`/api/admin/tasks/${id}`), {
+        method: 'DELETE', credentials: 'include',
+      });
+      if (res.ok) navigate('/admin/tasks');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-peach-500 border-t-transparent rounded-full animate-spin" /></div>;
   if (!task) return <div className="text-center py-16 text-slate-400">Task not found</div>;
 
   return (
     <div className="max-w-4xl space-y-6">
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8">
+            <h2 className="font-display text-xl font-bold text-slate-900 mb-2">Delete Task?</h2>
+            <p className="text-slate-500 text-sm mb-6">
+              This will <span className="font-bold text-red-600">permanently delete</span> "{task.title}". This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteConfirm(false)} className="flex-1 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+                Cancel
+              </button>
+              <button onClick={handleDelete} disabled={deleting} className="flex-1 py-3 rounded-xl bg-red-600 text-sm font-bold text-white hover:bg-red-700 transition-colors disabled:opacity-50">
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex items-center gap-3">
         <Link to="/admin/tasks" className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors"><ArrowLeft size={20} /></Link>
         <h1 className="font-display text-xl font-bold text-slate-900 flex-1">{task.title}</h1>
         <PriorityBadge priority={task.priority} />
+        <button onClick={() => setDeleteConfirm(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors">
+          <Trash2 size={14} />Delete
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

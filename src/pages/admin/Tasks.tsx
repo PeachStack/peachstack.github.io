@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Layout, List } from 'lucide-react';
+import { Plus, Search, Layout, List, Trash2 } from 'lucide-react';
 import { apiUrl } from '../../lib/api';
 import StatusBadge from '../../components/admin/StatusBadge';
 import PriorityBadge from '../../components/admin/PriorityBadge';
@@ -16,6 +16,8 @@ export default function Tasks() {
   const [statusFilter, setStatusFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchTasks = () => {
     setLoading(true);
@@ -45,8 +47,40 @@ export default function Tasks() {
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await fetch(apiUrl(`/api/admin/tasks/${deleteTarget.id}`), {
+        method: 'DELETE', credentials: 'include',
+      });
+      setTasks(prev => prev.filter(t => t.id !== deleteTarget.id));
+      setDeleteTarget(null);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8">
+            <h2 className="font-display text-xl font-bold text-slate-900 mb-2">Delete Task?</h2>
+            <p className="text-slate-500 text-sm mb-6">
+              This will <span className="font-bold text-red-600">permanently delete</span> "{deleteTarget.title}". This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteTarget(null)} className="flex-1 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+                Cancel
+              </button>
+              <button onClick={handleDelete} disabled={deleting} className="flex-1 py-3 rounded-xl bg-red-600 text-sm font-bold text-white hover:bg-red-700 transition-colors disabled:opacity-50">
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-slate-900">Tasks</h1>
@@ -92,6 +126,7 @@ export default function Tasks() {
                 <th className="text-left px-4 py-3 font-semibold text-slate-500">Status</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-500 hidden md:table-cell">Priority</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-500 hidden lg:table-cell">Due Date</th>
+                <th className="px-4 py-3" />
               </tr></thead>
               <tbody>
                 {filtered.map(task => (
@@ -108,6 +143,11 @@ export default function Tasks() {
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell"><PriorityBadge priority={task.priority} /></td>
                     <td className="px-4 py-3 text-slate-400 text-xs hidden lg:table-cell">{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A'}</td>
+                    <td className="px-4 py-3">
+                      <button onClick={() => setDeleteTarget(task)} className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Delete task">
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -131,7 +171,12 @@ export default function Tasks() {
                       <Link to={`/admin/tasks/${task.id}`} className="block font-medium text-slate-900 hover:text-peach-600 text-sm mb-2">{task.title}</Link>
                       <div className="flex items-center justify-between">
                         <PriorityBadge priority={task.priority} />
-                        {task.assignee_name && <span className="text-xs text-slate-400">{task.assignee_name}</span>}
+                        <div className="flex items-center gap-2">
+                          {task.assignee_name && <span className="text-xs text-slate-400">{task.assignee_name}</span>}
+                          <button onClick={() => setDeleteTarget(task)} className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Delete task">
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}

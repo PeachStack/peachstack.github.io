@@ -1052,7 +1052,14 @@ export async function buildApp() {
     const task = taskResult.rows[0] as any;
     if (!task) return res.status(404).json({ message: "Not found" });
     if (req.user.role === "student") {
-      if (task.assigned_to !== req.user.id) return res.status(403).json({ message: "Not authorized" });
+      // Allow update if task is directly assigned OR if it matches the intern's role
+      const profileResult = await db.execute({ sql: "SELECT intern_role FROM student_profiles WHERE user_id = ?", args: [req.user.id] });
+      const internRole = (profileResult.rows[0] as any)?.intern_role || null;
+      const isAssignedToUser = task.assigned_to === req.user.id;
+      const isAssignedToRole = internRole && task.assigned_role === internRole;
+      if (!isAssignedToUser && !isAssignedToRole) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
       const { status, actual_hours } = req.body;
       if (status && !["in_progress", "in_review"].includes(status)) {
         return res.status(400).json({ message: "Students can only set in_progress or in_review" });

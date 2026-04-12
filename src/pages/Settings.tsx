@@ -3,11 +3,15 @@ import { Settings as SettingsIcon, Bell, Lock, User, Shield, HelpCircle, LogOut,
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
+import { apiUrl } from '../lib/api';
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('profile');
   const [userName, setUserName] = useState('');
   const [email, setEmail] = useState('');
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [pwForm, setPwForm] = useState({ current: '', newPw: '', confirm: '' });
+  const [pwSaving, setPwSaving] = useState(false);
 
   useEffect(() => {
     const savedName = localStorage.getItem('peachstack_user_name');
@@ -21,6 +25,39 @@ export default function Settings() {
     e.preventDefault();
     localStorage.setItem('peachstack_user_name', userName);
     toast.success('Settings saved successfully!');
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pwForm.newPw !== pwForm.confirm) {
+      toast.error('New passwords do not match');
+      return;
+    }
+    if (pwForm.newPw.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
+    setPwSaving(true);
+    try {
+      const res = await fetch(apiUrl('/api/workspace/password'), {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: pwForm.current, newPassword: pwForm.newPw }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.message || 'Failed to update password');
+        return;
+      }
+      toast.success('Password updated successfully!');
+      setPwForm({ current: '', newPw: '', confirm: '' });
+      setShowPasswordForm(false);
+    } catch {
+      toast.error('Network error. Please try again.');
+    } finally {
+      setPwSaving(false);
+    }
   };
 
   const tabs = [
@@ -147,17 +184,69 @@ export default function Settings() {
               {activeTab === 'security' && (
                 <div className="space-y-6">
                   <div className="space-y-4">
-                    <div className="p-4 rounded-2xl border border-slate-100 flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
-                          <Lock size={20} />
+                    <div className="p-4 rounded-2xl border border-slate-100">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
+                            <Lock size={20} />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-slate-900">Change Password</p>
+                            <p className="text-xs text-slate-500">Update your account password.</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-bold text-slate-900">Change Password</p>
-                          <p className="text-xs text-slate-500">Update your account password.</p>
-                        </div>
+                        <button
+                          onClick={() => setShowPasswordForm(v => !v)}
+                          className="text-sm font-bold text-peach-600 hover:text-peach-700 transition-colors"
+                        >
+                          {showPasswordForm ? 'Cancel' : 'Update'}
+                        </button>
                       </div>
-                      <button className="text-sm font-bold text-peach-600">Update</button>
+                      {showPasswordForm && (
+                        <form onSubmit={handlePasswordChange} className="mt-5 space-y-3">
+                          <div>
+                            <label className="block text-xs font-medium text-slate-700 mb-1">Current Password</label>
+                            <input
+                              type="password"
+                              required
+                              value={pwForm.current}
+                              onChange={e => setPwForm(p => ({ ...p, current: e.target.value }))}
+                              className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-peach-500 focus:outline-none focus:ring-2 focus:ring-peach-500/20"
+                              placeholder="Enter current password"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-slate-700 mb-1">New Password</label>
+                            <input
+                              type="password"
+                              required
+                              value={pwForm.newPw}
+                              onChange={e => setPwForm(p => ({ ...p, newPw: e.target.value }))}
+                              className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-peach-500 focus:outline-none focus:ring-2 focus:ring-peach-500/20"
+                              placeholder="At least 8 characters"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-slate-700 mb-1">Confirm New Password</label>
+                            <input
+                              type="password"
+                              required
+                              value={pwForm.confirm}
+                              onChange={e => setPwForm(p => ({ ...p, confirm: e.target.value }))}
+                              className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-peach-500 focus:outline-none focus:ring-2 focus:ring-peach-500/20"
+                              placeholder="Re-enter new password"
+                            />
+                          </div>
+                          <button
+                            type="submit"
+                            disabled={pwSaving}
+                            className="flex items-center justify-center gap-2 rounded-xl bg-peach-500 px-6 py-2.5 text-sm font-bold text-white hover:bg-peach-600 active:scale-95 disabled:opacity-50 transition-all"
+                          >
+                            <Save size={16} />
+                            {pwSaving ? 'Saving...' : 'Save Password'}
+                          </button>
+                        </form>
+                      )}
                     </div>
                   </div>
                 </div>

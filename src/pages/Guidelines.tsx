@@ -10,7 +10,7 @@ const sections = [
     title: 'Professional Conduct',
     content: (
       <div className="space-y-3 text-slate-600 leading-relaxed">
-        <p>All Peach Stack participants — interns and employers alike — are expected to conduct themselves professionally at all times. This means:</p>
+        <p>All Peach Stack participants (interns and employers alike) are expected to conduct themselves professionally at all times. This means:</p>
         <ul className="list-disc pl-6 space-y-2">
           <li>Treat every person on the platform with respect, regardless of their role, background, or experience level.</li>
           <li>Communicate in a professional, constructive manner in all written communications.</li>
@@ -28,7 +28,7 @@ const sections = [
         <p>Clear, respectful communication is the foundation of every successful project. We expect:</p>
         <ul className="list-disc pl-6 space-y-2">
           <li>Respond to messages and task feedback within 48 hours on business days.</li>
-          <li>Be direct and specific when providing feedback — vague or dismissive responses are not helpful.</li>
+          <li>Be direct and specific when providing feedback. Vague or dismissive responses are not helpful.</li>
           <li>No harassment, hate speech, discriminatory language, or personal attacks of any kind.</li>
           <li>Do not spam, send unsolicited promotional content, or use the platform's messaging for purposes unrelated to your internship work.</li>
         </ul>
@@ -43,7 +43,7 @@ const sections = [
         <p>Peach Stack exists to build real skills through real work. Standards for deliverables:</p>
         <ul className="list-disc pl-6 space-y-2">
           <li>Submit only original work. Plagiarism, passing off AI-generated content as your own without disclosure, or copying others' submissions is grounds for removal.</li>
-          <li>If you are unable to complete a task by its deadline, notify your team admin <em>before</em> the deadline — not after.</li>
+          <li>If you are unable to complete a task by its deadline, notify your team admin <em>before</em> the deadline, not after.</li>
           <li>Task submissions should be complete and professionally presented. Rough drafts and placeholder content are not acceptable final submissions.</li>
           <li>Actively incorporate feedback from task reviews to improve your work and grow your skills.</li>
         </ul>
@@ -70,7 +70,7 @@ const sections = [
     title: 'Reporting Violations',
     content: (
       <p className="text-slate-600 leading-relaxed">
-        If you witness or experience a violation of these guidelines — including harassment, discrimination, dishonesty, or any behavior that makes the platform unsafe — report it immediately to{' '}
+        If you witness or experience a violation of these guidelines (including harassment, discrimination, dishonesty, or any behavior that makes the platform unsafe), report it immediately to{' '}
         <a href="mailto:peachstackadmin@gmail.com" className="text-peach-600 font-bold hover:underline">
           peachstackadmin@gmail.com
         </a>{' '}
@@ -117,7 +117,7 @@ export default function Guidelines() {
           </div>
 
           <p className="text-slate-600 leading-relaxed mb-12">
-            Peach Stack is built on the belief that ambitious students deserve a professional, respectful environment to grow. These guidelines set the standard of conduct for everyone on the platform — interns, employers, and administrators alike. By participating, you agree to uphold them.
+            Peach Stack is built on the belief that ambitious students deserve a professional, respectful environment to grow. These guidelines set the standard of conduct for everyone on the platform: interns, employers, and administrators alike. By participating, you agree to uphold them.
           </p>
 
           <div className="space-y-12">

@@ -50,6 +50,7 @@ import AdminSettings from './pages/admin/Settings';
 import AdminTeam from './pages/admin/Team';
 import AdminMessages from './pages/admin/Messages';
 import AdminCalendar from './pages/admin/Calendar';
+import AdminContactSubmissions from './pages/admin/ContactSubmissions';
 import WorkspaceMessages from './pages/workspace/Messages';
 
 function Navbar() {
@@ -131,7 +132,7 @@ function Navbar() {
               <PeachLogo size={32} />
             </div>
             <span className="font-display text-xl font-bold tracking-tight text-slate-900">
-              Peach<span className="text-peach-500">stack</span>
+              Peach <span className="text-peach-500">Stack</span>
             </span>
           </Link>
         </div>
@@ -479,6 +480,7 @@ function MainApp() {
           <Route path="team" element={<AdminTeam />} />
           <Route path="messages" element={<AdminMessages />} />
           <Route path="calendar" element={<AdminCalendar />} />
+          <Route path="contacts" element={<AdminContactSubmissions />} />
         </Route>
       </Routes>
     );

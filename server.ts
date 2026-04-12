@@ -1189,6 +1189,20 @@ export async function buildApp() {
     res.json({ message: "Profile updated" });
   });
 
+  app.patch("/api/workspace/password", studentApiLimiter, authenticate, async (req: any, res: any) => {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) return res.status(400).json({ message: "Current and new password are required" });
+    if (newPassword.length < 8) return res.status(400).json({ message: "New password must be at least 8 characters" });
+    const result = await db.execute({ sql: "SELECT password FROM users WHERE id = ?", args: [req.user.id] });
+    const user = result.rows[0] as any;
+    if (!user) return res.status(404).json({ message: "User not found" });
+    const valid = await bcrypt.compare(currentPassword, user.password);
+    if (!valid) return res.status(401).json({ message: "Current password is incorrect" });
+    const hashed = await bcrypt.hash(newPassword, 12);
+    await db.execute({ sql: "UPDATE users SET password = ?, token_version = token_version + 1 WHERE id = ?", args: [hashed, req.user.id] });
+    res.json({ message: "Password updated successfully" });
+  });
+
   return app;
 }
 

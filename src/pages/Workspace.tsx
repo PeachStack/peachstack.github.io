@@ -28,6 +28,9 @@ function ProfileSetupModal({ onComplete }: { onComplete: (name: string) => void 
   const [lastName, setLastName] = useState('');
   const [university, setUniversity] = useState('');
   const [bio, setBio] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -37,17 +40,44 @@ function ProfileSetupModal({ onComplete }: { onComplete: (name: string) => void 
       setError('Please fill out all required fields.');
       return;
     }
+    if (newPassword && newPassword.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+    if (newPassword && newPassword !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
     setError('');
     setLoading(true);
     const fullName = `${firstName.trim()} ${lastName.trim()}`;
     try {
-      const res = await fetch(apiUrl('/api/workspace/profile'), {
+      const profileRes = await fetch(apiUrl('/api/workspace/profile'), {
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: fullName, university: university.trim(), bio: bio.trim() || null }),
       });
-      if (!res.ok) throw new Error('Failed to save profile');
+      if (!profileRes.ok) throw new Error('Failed to save profile');
+      if (newPassword) {
+        if (!currentPassword) {
+          setError('Please enter your current password to set a new one.');
+          setLoading(false);
+          return;
+        }
+        const pwRes = await fetch(apiUrl('/api/workspace/password'), {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currentPassword, newPassword }),
+        });
+        if (!pwRes.ok) {
+          const pwData = await pwRes.json().catch(() => ({}));
+          setError(pwData.message || 'Failed to set password. You can change it later in Settings.');
+          setLoading(false);
+          return;
+        }
+      }
       localStorage.setItem('peachstack_user_name', fullName);
       localStorage.setItem('peachstack_user_university', university.trim());
       onComplete(firstName.trim());
@@ -63,7 +93,7 @@ function ProfileSetupModal({ onComplete }: { onComplete: (name: string) => void 
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-8"
+        className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-8 overflow-y-auto max-h-[90vh]"
       >
         <div className="text-center mb-8">
           <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-peach-100 text-peach-600 mb-4">
@@ -119,6 +149,45 @@ function ProfileSetupModal({ onComplete }: { onComplete: (name: string) => void 
               className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent resize-none"
               placeholder="A short intro about yourself, your major, or what you're excited to work on..."
             />
+          </div>
+          <div className="border-t border-slate-100 pt-4">
+            <p className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+              <span>🔒</span> Set Your Password
+              <span className="text-slate-400 font-normal text-xs">(recommended)</span>
+            </p>
+            <p className="text-xs text-slate-500 mb-3">Your account was created with a temporary password. We recommend setting a new one now.</p>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Current Password</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={e => setCurrentPassword(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent"
+                  placeholder="Your current login password"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">New Password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent"
+                  placeholder="At least 8 characters"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent"
+                  placeholder="Re-enter new password"
+                />
+              </div>
+            </div>
           </div>
           {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{error}</p>}
           <button

@@ -70,6 +70,7 @@ export async function initDb() {
       status TEXT DEFAULT 'open' CHECK(status IN ('open', 'closed', 'in-progress')),
       deadline DATETIME,
       compensation TEXT,
+      target_role TEXT DEFAULT 'all',
       FOREIGN KEY(employer_id) REFERENCES users(id)
     );
 
@@ -85,6 +86,7 @@ export async function initDb() {
       priority TEXT DEFAULT 'medium' CHECK(priority IN ('low', 'medium', 'high', 'urgent')),
       task_type TEXT DEFAULT 'regular' CHECK(task_type IN ('regular', 'challenge')),
       due_date DATETIME,
+      estimated_hours REAL,
       points INTEGER DEFAULT 10,
       tags TEXT,
       submission_url TEXT,
@@ -228,11 +230,15 @@ export async function initDb() {
     );
   `);
 
+  // Add missing columns to existing tables (safe to run multiple times)
+  try { await db.execute({ sql: "ALTER TABLE projects ADD COLUMN target_role TEXT DEFAULT 'all'", args: [] }); } catch { /* column already exists */ }
+  try { await db.execute({ sql: "ALTER TABLE tasks ADD COLUMN estimated_hours REAL", args: [] }); } catch { /* column already exists */ }
+
   // Seed superadmin unconditionally on every boot
   const bcrypt = await import('bcryptjs');
   const adminPassword = await bcrypt.default.hash(process.env.ADMIN_PASSWORD || 'PeachAdmin2026!', 12);
   await db.execute({
-    sql: `INSERT OR IGNORE INTO users (id, email, password, role, name) VALUES ('admin-1', 'peachstackadmin@gmail.com', ?, 'superadmin', 'Peachstack Admin')`,
+    sql: `INSERT OR IGNORE INTO users (id, email, password, role, name) VALUES ('admin-1', 'peachstackadmin@gmail.com', ?, 'superadmin', 'Peach Stack Admin')`,
     args: [adminPassword],
   });
   await db.execute({

@@ -9,7 +9,7 @@ const sections = [
     title: 'Information We Collect',
     content: (
       <p className="text-slate-600 leading-relaxed">
-        When you apply to or use Peachstack, we may collect your name, email address, phone number,
+        When you apply to or use Peach Stack, we may collect your name, email address, phone number,
         resume, school information, and any other information you voluntarily provide through our
         application form or account registration. When you use the platform, we also collect basic
         usage data such as login timestamps and activity on your account.
@@ -67,7 +67,7 @@ const sections = [
     title: 'Children and Age Requirements',
     content: (
       <p className="text-slate-600 leading-relaxed">
-        Peachstack is intended for users who are 18 years of age or older. We do not knowingly
+        Peach Stack is intended for users who are 18 years of age or older. We do not knowingly
         collect information from anyone under 18. If we become aware that a user is under 18, we
         will terminate their account immediately.
       </p>
@@ -97,7 +97,7 @@ export default function Privacy() {
           </div>
 
           <p className="text-slate-600 leading-relaxed mb-12">
-            Peachstack ("we," "us," or "our") is operated out of Atlanta, Georgia. This Privacy
+            Peach Stack ("we," "us," or "our") is operated out of Atlanta, Georgia. This Privacy
             Policy explains what information we collect, how we use it, and your rights regarding
             that information.
           </p>

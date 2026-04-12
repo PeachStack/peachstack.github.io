@@ -1,8 +1,39 @@
 import { motion } from 'motion/react';
-import { Mail, Sparkles, CheckCircle2, MessageSquare } from 'lucide-react';
+import { Mail, Sparkles, CheckCircle2, MessageSquare, Send, Loader2 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useState } from 'react';
+import type { FormEvent } from 'react';
+import { apiUrl } from '../lib/api';
 
 export default function Contact() {
+  const [form, setForm] = useState({ name: '', email: '', message: '' });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError('');
+    try {
+      const res = await fetch(apiUrl('/api/contact'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.message || 'Something went wrong. Please try again.');
+        return;
+      }
+      setSubmitted(true);
+    } catch {
+      setError('Network error. Please try again or email us directly.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -46,7 +77,7 @@ export default function Contact() {
                   <MessageSquare size={20} className="text-peach-400" />
                   Response Time
                 </h4>
-                <p className="text-slate-400 text-sm mb-6">Our team reviews emails Monday – Friday. We aim to respond within 1–2 business days.</p>
+                <p className="text-slate-400 text-sm mb-6">Our team reviews messages Monday – Friday. We aim to respond within 1–2 business days.</p>
                 <div className="flex items-center gap-2 text-xs font-bold text-green-400">
                   <CheckCircle2 size={14} />
                   Average response time: 24 hours
@@ -56,26 +87,75 @@ export default function Contact() {
             </div>
           </motion.div>
 
-          {/* Right Side: Email CTA */}
+          {/* Right Side: Contact Form */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
-            className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 p-10 lg:p-12 flex flex-col items-center justify-center text-center"
+            className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 p-10 lg:p-12"
           >
-            <div className="h-20 w-20 rounded-3xl bg-blue-50 flex items-center justify-center text-blue-600 mb-8">
-              <Mail size={40} />
-            </div>
-            <h2 className="font-display text-3xl font-bold text-slate-900 mb-4">Send us an email</h2>
-            <p className="text-slate-600 mb-8 leading-relaxed max-w-sm">
-              Have a question, partnership inquiry, or just want to say hello? Drop us a line and we'll get back to you shortly.
-            </p>
-            <a
-              href="mailto:peachstackadmin@gmail.com"
-              className="flex items-center justify-center gap-2 rounded-xl bg-peach-500 px-8 py-4 text-lg font-bold text-white shadow-lg shadow-peach-100 transition-all hover:bg-peach-600 active:scale-95 w-full"
-            >
-              <Mail size={20} />
-              peachstackadmin@gmail.com
-            </a>
+            {submitted ? (
+              <div className="flex flex-col items-center justify-center text-center py-8">
+                <div className="h-20 w-20 rounded-3xl bg-green-50 flex items-center justify-center text-green-500 mb-6">
+                  <CheckCircle2 size={40} />
+                </div>
+                <h2 className="font-display text-2xl font-bold text-slate-900 mb-3">Message Sent!</h2>
+                <p className="text-slate-600 leading-relaxed max-w-sm">
+                  Thanks for reaching out. We'll get back to you within 1–2 business days.
+                </p>
+              </div>
+            ) : (
+              <>
+                <h2 className="font-display text-2xl font-bold text-slate-900 mb-6">Send us a message</h2>
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Your Name *</label>
+                    <input
+                      required
+                      value={form.name}
+                      onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent"
+                      placeholder="Jane Smith"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Email Address *</label>
+                    <input
+                      required
+                      type="email"
+                      value={form.email}
+                      onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent"
+                      placeholder="jane@example.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Message *</label>
+                    <textarea
+                      required
+                      rows={5}
+                      value={form.message}
+                      onChange={e => setForm(p => ({ ...p, message: e.target.value }))}
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent resize-none"
+                      placeholder="Tell us how we can help..."
+                    />
+                  </div>
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">{error}</div>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex items-center justify-center gap-2 w-full rounded-xl bg-peach-500 px-8 py-4 text-base font-bold text-white shadow-lg shadow-peach-100 transition-all hover:bg-peach-600 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {submitting ? (
+                      <><Loader2 size={18} className="animate-spin" /> Sending...</>
+                    ) : (
+                      <><Send size={18} /> Send Message</>
+                    )}
+                  </button>
+                </form>
+              </>
+            )}
           </motion.div>
         </div>
       </div>

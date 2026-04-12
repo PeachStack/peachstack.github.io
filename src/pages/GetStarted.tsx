@@ -32,7 +32,7 @@ export default function GetStarted() {
             <span>Your Professional Journey Starts Here</span>
           </div>
           <h1 className="font-display text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
-            How would you like to use <span className="text-peach-500">Peachstack</span>?
+            How would you like to use <span className="text-peach-500">Peach Stack</span>?
           </h1>
           <p className="mt-6 text-lg text-slate-600 leading-relaxed">
             Choose your path and start building the future of corporate consulting.
@@ -130,7 +130,7 @@ export default function GetStarted() {
                 "flex items-center gap-2 font-bold transition-all",
                 hoveredRole === 'employer' ? "text-slate-900 translate-x-2" : "text-slate-400"
               )}>
-                Partner with Peachstack
+                Partner with Peach Stack
                 <ArrowRight size={20} />
               </div>
             </div>

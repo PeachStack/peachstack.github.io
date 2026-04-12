@@ -46,7 +46,7 @@ export default function AdminDashboard() {
     <div className="space-y-8">
       <div>
         <h1 className="font-display text-2xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-slate-500 text-sm mt-1">Overview of your Peachstack program</p>
+        <p className="text-slate-500 text-sm mt-1">Overview of your Peach Stack program</p>
       </div>
 
       {/* Metric cards */}

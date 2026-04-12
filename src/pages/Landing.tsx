@@ -26,7 +26,7 @@ export default function Landing() {
                 Turn <span className="text-peach-500 italic">Zero Experience</span> into a Career Stack.
               </h1>
               <p className="mt-6 text-lg leading-relaxed text-slate-600">
-                Peachstack bridges the gap between students and the corporate world. Build real skills, complete high impact projects, and launch your career from day one.
+                Peach Stack bridges the gap between students and the corporate world. Build real skills, complete high impact projects, and launch your career from day one.
               </p>
                 <div className="mt-10 flex flex-col gap-4 sm:flex-row">
                 <a
@@ -107,7 +107,7 @@ export default function Landing() {
               Bridging the gap between <span className="text-peach-500">ambition</span> and <span className="text-peach-500">opportunity</span>.
             </h2>
             <p className="text-lg text-slate-600 leading-relaxed">
-              Peachstack was founded with a simple goal: to empower students to build professional "stacks" of skills and experience before they even graduate.
+              Peach Stack was founded with a simple goal: to empower students to build professional "stacks" of skills and experience before they even graduate.
             </p>
           </div>
 
@@ -117,12 +117,12 @@ export default function Landing() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
             >
-              <h3 className="font-display text-3xl font-bold text-slate-900 mb-6">The Peachstack Story</h3>
+              <h3 className="font-display text-3xl font-bold text-slate-900 mb-6">The Peach Stack Story</h3>
               <p className="text-lg text-slate-600 mb-6 leading-relaxed">
                 As high school seniors and college students, we saw firsthand how difficult it is to find real opportunities. Traditional internship programs often overlook early students, career fairs feel out of reach, and meaningful experience seems reserved only for upperclassmen.
               </p>
               <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-                We realized that waiting for opportunities to come to us wasn't working, so we decided to build a platform that brings those opportunities directly to students. Peachstack was born from the belief that ambition shouldn't have to wait for a degree.
+                We realized that waiting for opportunities to come to us wasn't working, so we decided to build a platform that brings those opportunities directly to students. Peach Stack was born from the belief that ambition shouldn't have to wait for a degree.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                 <div>
@@ -222,7 +222,7 @@ export default function Landing() {
                 </div>
                 <h3 className="text-3xl font-bold text-white mb-6">Luxe Threading Studio</h3>
                 <p className="text-slate-400 text-lg leading-relaxed mb-10">
-                  A full service website built for a premium brow studio in Atlanta. From design to deployment, this is an example of the real world projects our students tackle through Peachstack.
+                  A full service website built for a premium brow studio in Atlanta. From design to deployment, this is an example of the real world projects our students tackle through Peach Stack.
                 </p>
                 <a 
                   href="https://luxe-threading-wx8o.vercel.app/" 
@@ -247,7 +247,7 @@ export default function Landing() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="font-display text-4xl font-bold text-slate-900">Our Core Values</h2>
-            <p className="mt-4 text-lg text-slate-600">The principles that guide everything we build at Peachstack.</p>
+            <p className="mt-4 text-lg text-slate-600">The principles that guide everything we build at Peach Stack.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[

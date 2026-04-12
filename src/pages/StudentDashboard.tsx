@@ -132,7 +132,7 @@ export default function StudentDashboard() {
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="font-display text-3xl font-bold text-slate-900">{student.name}</h1>
                 <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-600 uppercase tracking-wider">
-                  Year {student.year} • {student.university}
+                  {student.university}
                 </span>
               </div>
               <p className="mt-3 max-w-2xl text-slate-600">{student.bio}</p>

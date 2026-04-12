@@ -69,7 +69,7 @@ export default function Cookies() {
           </div>
 
           <p className="text-slate-600 leading-relaxed mb-12">
-            Peachstack uses cookies and similar technologies to operate the platform. This policy
+            Peach Stack uses cookies and similar technologies to operate the platform. This policy
             explains what we use and why.
           </p>
 

@@ -23,7 +23,7 @@ const founders = [
       'AI Development Fellow at Handshake',
       'Eagle Scout',
     ],
-    bio: 'Srikar leads operations, finance, and business development. His background spans risk analysis, financial modeling, and clinical operations, bringing the rigor of compliance and the instincts of a builder to everything Peachstack does.',
+    bio: 'Srikar leads operations, finance, and business development. His background spans risk analysis, financial modeling, and clinical operations, bringing the rigor of compliance and the instincts of a builder to everything Peach Stack does.',
     tech: null,
     avatar: 'Srikar_PFP.jpg',
   },
@@ -49,7 +49,7 @@ export default function About() {
               <span className="text-peach-500">professional talent.</span>
             </h1>
             <p className="text-xl text-slate-400 leading-relaxed max-w-3xl mx-auto">
-              Peachstack was founded in Atlanta by two builders who saw the same problem from both
+              Peach Stack was founded in Atlanta by two builders who saw the same problem from both
               sides: students who couldn't get experience without experience, and businesses that
               couldn't find reliable junior talent without spending months training them. We decided
               to fix both at once.

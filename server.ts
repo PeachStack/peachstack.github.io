@@ -13,7 +13,10 @@ import { db, initDb } from "./src/server/db";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const JWT_SECRET = process.env.JWT_SECRET || "peachstack-super-secret-key";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("FATAL: JWT_SECRET environment variable is not set");
+}
 const PORT = Number(process.env.PORT) || 3000;
 
 export async function buildApp() {
@@ -28,7 +31,7 @@ export async function buildApp() {
       : ["http://localhost:5173", "http://localhost:3000"],
     credentials: true,
   }));
-  app.use(express.json());
+  app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
 
   // ─── Rate limiters ───────────────────────────────────────────────────────────
@@ -38,6 +41,7 @@ export async function buildApp() {
   const studentApiLimiter = rateLimit({ windowMs: 60 * 1000, max: 60, standardHeaders: true, legacyHeaders: false });
 
   app.use("/api/login", loginLimiter);
+  app.use("/api/register", publicLimiter);
   app.use("/api/contact", publicLimiter);
 
   // ─── CSRF protection ─────────────────────────────────────────────────────────
@@ -56,11 +60,17 @@ export async function buildApp() {
   app.use(csrfCheck);
 
   // ─── Auth middleware ─────────────────────────────────────────────────────────
-  const authenticate = (req: any, res: any, next: any) => {
+  const authenticate = async (req: any, res: any, next: any) => {
     const token = req.cookies.token;
     if (!token) return res.status(401).json({ message: "Not authenticated" });
     try {
       const decoded = jwt.verify(token, JWT_SECRET) as any;
+      const result = await db.execute({ sql: "SELECT is_active, token_version FROM users WHERE id = ?", args: [decoded.id] });
+      const user = result.rows[0] as any;
+      if (!user || !user.is_active) return res.status(403).json({ message: "Account deactivated" });
+      if (decoded.tokenVersion !== undefined && decoded.tokenVersion !== user.token_version) {
+        return res.status(401).json({ message: "Session expired" });
+      }
       req.user = decoded;
       next();
     } catch (error) {
@@ -116,8 +126,11 @@ export async function buildApp() {
   // ─── Public Auth Routes ───────────────────────────────────────────────────────
   app.post("/api/register", async (req, res) => {
     const { email, password, name, role } = req.body;
+    if (!['student', 'employer'].includes(role)) {
+      return res.status(400).json({ message: "Invalid role" });
+    }
     const id = crypto.randomUUID();
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 12);
     try {
       await db.execute({ sql: "INSERT INTO users (id, email, password, name, role) VALUES (?, ?, ?, ?, ?)", args: [id, email, hashedPassword, name, role] });
       if (role === "student") {
@@ -133,13 +146,19 @@ export async function buildApp() {
 
   app.post("/api/login", async (req, res) => {
     const { email, password } = req.body;
-    const result = await db.execute({ sql: "SELECT * FROM users WHERE email = ?", args: [email] });
+    const result = await db.execute({ sql: "SELECT id, email, password, role, name, is_active, token_version FROM users WHERE email = ?", args: [email] });
     const user = result.rows[0] as any;
     if (!user || !(await bcrypt.compare(password, user.password))) {
+      await db.execute({
+        sql: "INSERT INTO security_log (id, email, ip_address, event) VALUES (?, ?, ?, 'failed_login')",
+        args: [crypto.randomUUID(), email || null, req.ip || null],
+      }).catch(() => {});
       return res.status(401).json({ message: "Invalid email or password" });
     }
+    if (!user.is_active) return res.status(403).json({ message: "Account deactivated" });
     await db.execute({ sql: "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?", args: [user.id] });
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role, name: user.name }, JWT_SECRET, { expiresIn: "24h" });
+    const tokenVersion = user.token_version || 0;
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role, name: user.name, tokenVersion }, JWT_SECRET, { expiresIn: "24h" });
     res.cookie("token", token, { httpOnly: true, secure: true, sameSite: "none", maxAge: 24 * 60 * 60 * 1000 });
     res.json({ user: { id: user.id, email: user.email, role: user.role, name: user.name } });
   });
@@ -197,7 +216,7 @@ export async function buildApp() {
   });
 
   // ─── Projects ─────────────────────────────────────────────────────────────────
-  app.get("/api/projects", async (req, res) => {
+  app.get("/api/projects", studentApiLimiter, authenticate, async (req, res) => {
     const result = await db.execute({ sql: "SELECT * FROM projects WHERE status = 'open'", args: [] });
     res.json((result.rows as any[]).map((p) => ({ ...p, skills_required: JSON.parse(p.skills_required || "[]") })));
   });
@@ -243,9 +262,13 @@ export async function buildApp() {
   app.post("/api/admin/login", loginLimiter, async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ message: "Email and password required" });
-    const result = await db.execute({ sql: "SELECT * FROM users WHERE email = ? AND role IN ('admin', 'superadmin')", args: [email] });
+    const result = await db.execute({ sql: "SELECT id, email, password, role, name, is_active, token_version FROM users WHERE email = ? AND role IN ('admin', 'superadmin')", args: [email] });
     const user = result.rows[0] as any;
     if (!user || !(await bcrypt.compare(password, user.password))) {
+      await db.execute({
+        sql: "INSERT INTO security_log (id, email, ip_address, event) VALUES (?, ?, ?, 'failed_login')",
+        args: [crypto.randomUUID(), email || null, req.ip || null],
+      }).catch(() => {});
       return res.status(401).json({ message: "Invalid credentials" });
     }
     if (!user.is_active) return res.status(403).json({ message: "Account deactivated" });
@@ -410,7 +433,7 @@ export async function buildApp() {
       await db.execute({ sql: "INSERT INTO student_profiles (user_id, intern_role) VALUES (?, ?)", args: [id, internRole || null] });
       await db.execute({
         sql: "INSERT INTO notifications (id, user_id, message, type) VALUES (?, ?, ?, 'account_created')",
-        args: [crypto.randomUUID(), id, `Welcome to Peachstack, ${name}! Your account has been created.`],
+        args: [crypto.randomUUID(), id, `Welcome to Peach Stack, ${name}! Your account has been created.`],
       });
       // Auto-add intern to matching role-based groups
       const groupsResult = await db.execute({
@@ -1056,8 +1079,14 @@ export async function buildApp() {
     const profileResult = await db.execute({ sql: "SELECT intern_role FROM student_profiles WHERE user_id = ?", args: [req.user.id] });
     const profile = profileResult.rows[0] as any;
     const internRole = profile?.intern_role || null;
-    let sql = "SELECT t.*, u.name as creator_name FROM tasks t LEFT JOIN users u ON t.created_by = u.id WHERE (t.assigned_to = ?";
-    const args: any[] = [req.user.id];
+    // Hide submission and review fields for role-based tasks not assigned to this specific user
+    let sql = `SELECT t.id, t.title, t.description, t.status, t.priority, t.task_type, t.assigned_role, t.due_date, t.estimated_hours, t.tags, t.points, t.created_at, t.updated_at,
+      CASE WHEN t.assigned_to = ? THEN t.submission_url ELSE NULL END as submission_url,
+      CASE WHEN t.assigned_to = ? THEN t.submission_note ELSE NULL END as submission_note,
+      CASE WHEN t.assigned_to = ? THEN t.admin_feedback ELSE NULL END as admin_feedback,
+      CASE WHEN t.assigned_to = ? THEN t.admin_score ELSE NULL END as admin_score,
+      u.name as creator_name FROM tasks t LEFT JOIN users u ON t.created_by = u.id WHERE (t.assigned_to = ?`;
+    const args: any[] = [req.user.id, req.user.id, req.user.id, req.user.id, req.user.id];
     if (internRole) {
       sql += " OR t.assigned_role = ?";
       args.push(internRole);
@@ -1178,7 +1207,7 @@ async function startServer() {
     // Frontend is served by GitHub Pages — not from this server.
     // This server is API-only in production.
     app.get("/", (req, res) => {
-      res.json({ status: "Peachstack API is running" });
+      res.json({ status: "Peach Stack API is running" });
     });
   }
 

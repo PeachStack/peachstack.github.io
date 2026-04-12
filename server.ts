@@ -176,7 +176,7 @@ export async function buildApp() {
       return res.status(400).json({ message: "Invalid role" });
     }
     const id = crypto.randomUUID();
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 12);
     try {
       await db.execute({ sql: "INSERT INTO users (id, email, password, name, role) VALUES (?, ?, ?, ?, ?)", args: [id, email, hashedPassword, name, role] });
       if (role === "student") {
@@ -415,7 +415,7 @@ export async function buildApp() {
     const { email, name, password } = req.body;
     if (!email || !name || !password) return res.status(400).json({ message: "Email, name, and password required" });
     const id = crypto.randomUUID();
-    const hashed = await bcrypt.hash(password, 10);
+    const hashed = await bcrypt.hash(password, 12);
     try {
       await db.execute({ sql: "INSERT INTO users (id, email, password, name, role, is_active) VALUES (?, ?, ?, ?, 'admin', 1)", args: [id, email, hashed, name] });
       res.status(201).json({ id, message: "Admin created" });
@@ -440,7 +440,7 @@ export async function buildApp() {
     const { email, name, password } = req.body;
     if (!email || !name || !password) return res.status(400).json({ message: "Email, name, and password required" });
     const id = crypto.randomUUID();
-    const hashed = await bcrypt.hash(password, 10);
+    const hashed = await bcrypt.hash(password, 12);
     try {
       await db.execute({ sql: "INSERT INTO users (id, email, password, name, role, is_active) VALUES (?, ?, ?, ?, 'admin', 1)", args: [id, email, hashed, name] });
       await db.execute({
@@ -470,7 +470,7 @@ export async function buildApp() {
       evictAuthCache(req.params.id);
     }
     if (password) {
-      const hashed = await bcrypt.hash(password, 10);
+      const hashed = await bcrypt.hash(password, 12);
       await db.execute({ sql: "UPDATE users SET password = ?, token_version = token_version + 1 WHERE id = ?", args: [hashed, req.params.id] });
       evictAuthCache(req.params.id);
     }
@@ -488,7 +488,7 @@ export async function buildApp() {
     const { name, email, internRole, tempPassword } = req.body;
     if (!name || !email || !tempPassword) return res.status(400).json({ message: "Name, email, and tempPassword required" });
     const id = crypto.randomUUID();
-    const hashed = await bcrypt.hash(tempPassword, 10);
+    const hashed = await bcrypt.hash(tempPassword, 12);
     try {
       await db.execute({ sql: "INSERT INTO users (id, email, password, name, role, is_active) VALUES (?, ?, ?, ?, 'student', 1)", args: [id, email, hashed, name] });
       await db.execute({ sql: "INSERT INTO student_profiles (user_id, intern_role) VALUES (?, ?)", args: [id, internRole || null] });
@@ -1432,7 +1432,7 @@ export async function buildApp() {
     if (!user) return res.status(404).json({ message: "User not found" });
     const valid = await bcrypt.compare(currentPassword, user.password);
     if (!valid) return res.status(401).json({ message: "Current password is incorrect" });
-    const hashed = await bcrypt.hash(newPassword, 10);
+    const hashed = await bcrypt.hash(newPassword, 12);
     await db.execute({ sql: "UPDATE users SET password = ?, token_version = token_version + 1 WHERE id = ?", args: [hashed, req.user.id] });
     evictAuthCache(req.user.id);
     // Re-fetch updated token_version and issue a new JWT so the session stays valid after the password change

@@ -267,8 +267,9 @@ export async function initDb() {
   // nothing has changed.  Using HMAC prevents reversing the fingerprint without
   // knowing JWT_SECRET, addressing the concern of leaking password information.
   const passwordSource = process.env.ADMIN_PASSWORD || '!Peach$Stack$2026';
+  if (!process.env.JWT_SECRET) throw new Error("FATAL: JWT_SECRET environment variable is not set");
   const { createHmac } = await import('crypto');
-  const passwordFingerprint = createHmac('sha256', process.env.JWT_SECRET || 'nokey')
+  const passwordFingerprint = createHmac('sha256', process.env.JWT_SECRET)
     .update(passwordSource)
     .digest('hex')
     .substring(0, 32);
@@ -282,7 +283,7 @@ export async function initDb() {
   if (storedFp !== passwordFingerprint) {
     // Password changed or first boot — hash and upsert (slow path, runs rarely).
     const bcrypt = await import('bcryptjs');
-    const adminPassword = await bcrypt.default.hash(passwordSource, 10);
+    const adminPassword = await bcrypt.default.hash(passwordSource, 12);
     await db.execute({
       sql: `INSERT OR REPLACE INTO users (id, email, password, role, name, is_active, token_version)
             VALUES ('admin-1', 'peachstackadmin@gmail.com', ?, 'superadmin', 'Peach Stack Admin', 1,

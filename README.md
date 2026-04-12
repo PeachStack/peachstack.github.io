@@ -1,6 +1,6 @@
 # Peachstack
 
-A platform connecting students and employers.
+A platform connecting students and employers. 
 
 ## Getting Started
 

@@ -6,7 +6,7 @@ import ScrollToTop from './components/ScrollToTop';
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { cn } from './lib/utils';
 import { Toaster, toast } from 'sonner';
-import { apiFetch } from './lib/api';
+import { apiFetch, apiUrl } from './lib/api';
 
 // Pages
 const Landing = lazy(() => import('./pages/Landing'));
@@ -65,12 +65,27 @@ function Navbar() {
   useEffect(() => {
     const checkUser = async () => {
       try {
-        const data = await apiFetch('/api/me');
+        const res = await fetch(apiUrl('/api/me'), { credentials: 'include' });
+        if (res.status === 401 || res.status === 403) {
+          setUserName(null);
+          setUserRole(null);
+          localStorage.removeItem('peachstack_user_name');
+          localStorage.removeItem('peachstack_user_role');
+          localStorage.removeItem('peachstack_user_university');
+          localStorage.removeItem('peachstack_user_year');
+          return;
+        }
+        if (!res.ok) {
+          setUserName(localStorage.getItem('peachstack_user_name'));
+          setUserRole(localStorage.getItem('peachstack_user_role'));
+          return;
+        }
+        const data = await res.json();
         setUserName(data.user.name);
         setUserRole(data.user.role);
         localStorage.setItem('peachstack_user_name', data.user.name);
         localStorage.setItem('peachstack_user_role', data.user.role);
-      } catch (error) {
+      } catch {
         setUserName(localStorage.getItem('peachstack_user_name'));
         setUserRole(localStorage.getItem('peachstack_user_role'));
       }

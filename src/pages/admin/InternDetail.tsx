@@ -12,6 +12,7 @@ export default function InternDetail() {
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     fetch(apiUrl(`/api/admin/interns/${id}`), { credentials: 'include' })
@@ -29,13 +30,19 @@ export default function InternDetail() {
 
   const handleDelete = async () => {
     setDeleting(true);
+    setDeleteError('');
     try {
       const res = await fetch(apiUrl(`/api/admin/interns/${id}`), {
         method: 'DELETE', credentials: 'include',
       });
       if (res.ok) {
         navigate('/admin/interns');
+      } else {
+        const data = await res.json().catch(() => ({ message: 'Failed to delete intern' }));
+        setDeleteError(data.message || 'Failed to delete intern. Please try again.');
       }
+    } catch {
+      setDeleteError('Network error. Please try again.');
     } finally {
       setDeleting(false);
     }
@@ -54,6 +61,9 @@ export default function InternDetail() {
             <p className="text-slate-500 text-sm mb-6">
               This will <span className="font-bold text-red-600">permanently delete</span> {intern.name}'s account and all associated data. This cannot be undone.
             </p>
+            {deleteError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-xl text-sm mb-4">{deleteError}</div>
+            )}
             <div className="flex gap-3">
               <button onClick={() => setDeleteConfirm(false)} className="flex-1 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
                 Cancel

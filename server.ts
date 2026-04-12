@@ -305,20 +305,20 @@ export async function buildApp() {
 
   // ─── Admin Dashboard ──────────────────────────────────────────────────────────
   app.get("/api/admin/dashboard", adminApiLimiter, requireAdmin, async (req, res) => {
-    const activeInternsResult = await db.execute({ sql: "SELECT COUNT(*) as count FROM users WHERE role = 'student' AND is_active = 1", args: [] });
-    const activeInterns = (activeInternsResult.rows[0] as any)?.count || 0;
+    const [activeInternsResult, taskStatsResult, pendingTasksResult, recentActivityResult] = await Promise.all([
+      db.execute({ sql: "SELECT COUNT(*) as count FROM users WHERE role = 'student' AND is_active = 1", args: [] }),
+      db.execute({ sql: "SELECT COUNT(*) as total, SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END) as completed FROM tasks", args: [] }),
+      db.execute({ sql: "SELECT COUNT(*) as count FROM tasks WHERE status = 'in_review'", args: [] }),
+      db.execute({
+        sql: "SELECT tal.*, u.name as actor_name, t.title as task_title FROM task_activity_log tal JOIN users u ON tal.user_id = u.id JOIN tasks t ON tal.task_id = t.id ORDER BY tal.created_at DESC LIMIT 10",
+        args: [],
+      }),
+    ]);
 
-    const taskStatsResult = await db.execute({ sql: "SELECT COUNT(*) as total, SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END) as completed FROM tasks", args: [] });
+    const activeInterns = (activeInternsResult.rows[0] as any)?.count || 0;
     const taskStats = taskStatsResult.rows[0] as any;
     const completionRate = taskStats.total > 0 ? Math.round((Number(taskStats.completed) / Number(taskStats.total)) * 100) : 0;
-
-    const pendingTasksResult = await db.execute({ sql: "SELECT COUNT(*) as count FROM tasks WHERE status = 'in_review'", args: [] });
     const pendingTasks = (pendingTasksResult.rows[0] as any)?.count || 0;
-
-    const recentActivityResult = await db.execute({
-      sql: "SELECT tal.*, u.name as actor_name, t.title as task_title FROM task_activity_log tal JOIN users u ON tal.user_id = u.id JOIN tasks t ON tal.task_id = t.id ORDER BY tal.created_at DESC LIMIT 10",
-      args: [],
-    });
     const recentActivity = recentActivityResult.rows as any[];
 
     res.json({ activeInterns, completionRate, pendingTasks, recentActivity });
@@ -326,17 +326,26 @@ export async function buildApp() {
 
   // ─── Admin Metrics (legacy) ───────────────────────────────────────────────────
   app.get("/api/admin/metrics", adminApiLimiter, requireAdmin, async (req, res) => {
-    const totalInternsResult = await db.execute({ sql: "SELECT COUNT(*) as count FROM users WHERE role = 'student' AND is_active = 1", args: [] });
-    const totalProjectsResult = await db.execute({ sql: "SELECT COUNT(*) as count FROM projects", args: [] });
-    const openProjectsResult = await db.execute({ sql: "SELECT COUNT(*) as count FROM projects WHERE status = 'open'", args: [] });
-    const totalTasksResult = await db.execute({ sql: "SELECT COUNT(*) as count FROM tasks WHERE status != 'completed'", args: [] });
-    const completedTasksResult = await db.execute({ sql: "SELECT COUNT(*) as count FROM tasks WHERE status = 'completed'", args: [] });
+    const [totalInternsResult, totalProjectsResult, openProjectsResult, taskStatsResult, unreadContactsResult] = await Promise.all([
+      db.execute({ sql: "SELECT COUNT(*) as count FROM users WHERE role = 'student' AND is_active = 1", args: [] }),
+      db.execute({ sql: "SELECT COUNT(*) as count FROM projects", args: [] }),
+      db.execute({ sql: "SELECT COUNT(*) as count FROM projects WHERE status = 'open'", args: [] }),
+      db.execute({ sql: "SELECT COUNT(*) as total, SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END) as completed FROM tasks", args: [] }),
+      db.execute({ sql: "SELECT COUNT(*) as count FROM contact_submissions WHERE status = 'unread'", args: [] }),
+    ]);
+    const taskStats = taskStatsResult.rows[0] as any;
     res.json({
       totalInterns: (totalInternsResult.rows[0] as any)?.count || 0,
+      totalApplications: 0,
+      pendingApplications: 0,
+      acceptedApplications: 0,
+      rejectedApplications: 0,
       totalProjects: (totalProjectsResult.rows[0] as any)?.count || 0,
       openProjects: (openProjectsResult.rows[0] as any)?.count || 0,
-      totalTasks: (totalTasksResult.rows[0] as any)?.count || 0,
-      completedTasks: (completedTasksResult.rows[0] as any)?.count || 0,
+      unreadContacts: (unreadContactsResult.rows[0] as any)?.count || 0,
+      totalTasks: Number(taskStats?.total || 0) - Number(taskStats?.completed || 0),
+      completedTasks: Number(taskStats?.completed || 0),
+      recentApplications: [],
     });
   });
 

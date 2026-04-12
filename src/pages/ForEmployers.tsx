@@ -150,11 +150,17 @@ export default function ForEmployers() {
               className="relative"
             >
               <div className="relative z-10 rounded-3xl bg-white p-2 shadow-2xl border border-slate-100 overflow-hidden">
-                <img
-                  src={`${import.meta.env.BASE_URL}crm-dashboard.png`}
-                  alt="Peach Stack CRM Dashboard"
-                  className="rounded-2xl w-full h-auto shadow-inner"
-                />
+                <picture>
+                  <source srcSet={`${import.meta.env.BASE_URL}crm-dashboard.webp`} type="image/webp" />
+                  <img
+                    src={`${import.meta.env.BASE_URL}crm-dashboard.png`}
+                    alt="Peach Stack CRM Dashboard"
+                    className="rounded-2xl w-full h-auto shadow-inner"
+                    width="1200"
+                    height="642"
+                    loading="lazy"
+                  />
+                </picture>
               </div>
               {/* Decorative background element */}
               <div className="absolute -right-10 -bottom-10 h-64 w-64 rounded-full bg-peach-100 blur-3xl -z-10" />
@@ -169,11 +175,17 @@ export default function ForEmployers() {
               className="relative order-2 lg:order-1"
             >
               <div className="relative z-10 rounded-3xl bg-white p-2 shadow-2xl border border-slate-100 overflow-hidden">
-                <img
-                  src={`${import.meta.env.BASE_URL}crm-revenue-pl.png`}
-                  alt="Revenue & P&L Page"
-                  className="rounded-2xl w-full h-auto shadow-inner"
-                />
+                <picture>
+                  <source srcSet={`${import.meta.env.BASE_URL}crm-revenue-pl.webp`} type="image/webp" />
+                  <img
+                    src={`${import.meta.env.BASE_URL}crm-revenue-pl.png`}
+                    alt="Revenue & P&L Page"
+                    className="rounded-2xl w-full h-auto shadow-inner"
+                    width="1200"
+                    height="641"
+                    loading="lazy"
+                  />
+                </picture>
               </div>
               {/* Decorative background element */}
               <div className="absolute -left-10 -top-10 h-64 w-64 rounded-full bg-blue-100 blur-3xl -z-10" />

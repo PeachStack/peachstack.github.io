@@ -124,7 +124,7 @@ export default function About() {
               >
                 <div className="flex items-start gap-6 mb-8">
                   <div className="h-16 w-16 rounded-2xl overflow-hidden shadow-lg shrink-0 bg-slate-100">
-                    <img src={`${import.meta.env.BASE_URL}${founder.avatar}`} alt={founder.name} className="h-full w-full object-cover" />
+                    <img src={`${import.meta.env.BASE_URL}${founder.avatar}`} alt={founder.name} className="h-full w-full object-cover" width="64" height="64" loading="lazy" />
                   </div>
                   <div>
                     <h3 className="font-display text-2xl font-bold text-slate-900">{founder.name}</h3>

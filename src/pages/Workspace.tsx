@@ -392,9 +392,15 @@ export default function Workspace() {
     // Check admin status first — only load workspace data if the user is NOT an admin.
     // This prevents the profile-setup modal from appearing for admins before the redirect fires.
     fetch(apiUrl('/api/me'), { credentials: 'include' })
-      .then(r => r.ok ? r.json() : null)
+      .then(r => {
+        if (r.status === 401 || r.status === 403) {
+          if (active) navigate('/login', { replace: true });
+          return null;
+        }
+        return r.ok ? r.json() : null;
+      })
       .then(data => {
-        if (!active) return;
+        if (!active || data === null) return;
         if (data?.user && (data.user.role === 'admin' || data.user.role === 'superadmin' || data.user.isAdmin)) {
           navigate('/admin/dashboard', { replace: true });
           return;

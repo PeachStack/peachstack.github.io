@@ -215,15 +215,8 @@ export async function buildApp() {
     res.json({ message: "Logged out successfully" });
   });
 
-  app.get("/api/me", (req, res) => {
-    const token = req.cookies.token;
-    if (!token) return res.status(401).json({ message: "Not authenticated" });
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET) as any;
-      res.json({ user: decoded });
-    } catch (error) {
-      res.status(401).json({ message: "Invalid token" });
-    }
+  app.get("/api/me", authenticate, (req: any, res: any) => {
+    res.json({ user: req.user });
   });
 
   // ─── Student Profiles ─────────────────────────────────────────────────────────

@@ -112,11 +112,11 @@ export default function AdminDashboard() {
         {/* Recent applications */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
           <h3 className="font-display font-bold text-slate-900 mb-4">Recent Applications</h3>
-          {metrics?.recentApplications?.length === 0 ? (
+          {!metrics?.recentApplications?.length ? (
             <p className="text-slate-400 text-sm">No applications yet</p>
           ) : (
             <div className="space-y-3">
-              {metrics?.recentApplications?.slice(0, 5).map((app, i) => (
+              {metrics.recentApplications.slice(0, 5).map((app, i) => (
                 <div key={i} className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full bg-peach-100 text-peach-700 flex items-center justify-center text-sm font-bold shrink-0">
                     {app.name?.[0] || '?'}

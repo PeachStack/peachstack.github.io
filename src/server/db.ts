@@ -236,17 +236,20 @@ export async function initDb() {
   try { await db.execute({ sql: "ALTER TABLE projects ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP", args: [] }); } catch { /* column already exists */ }
   try { await db.execute({ sql: "ALTER TABLE tasks ADD COLUMN estimated_hours REAL", args: [] }); } catch { /* column already exists */ }
 
-  // Seed superadmin unconditionally on every boot
-  const bcrypt = await import('bcryptjs');
-  const adminPassword = await bcrypt.default.hash(process.env.ADMIN_PASSWORD || 'PeachAdmin2026!', 12);
-  await db.execute({
-    sql: `INSERT OR IGNORE INTO users (id, email, password, role, name) VALUES ('admin-1', 'peachstackadmin@gmail.com', ?, 'superadmin', 'Peach Stack Admin')`,
-    args: [adminPassword],
+  // Seed superadmin only when the account does not exist yet.
+  // Skipping bcrypt on warm/cold restarts keeps startup fast.
+  const adminCheck = await db.execute({
+    sql: "SELECT id FROM users WHERE email = 'peachstackadmin@gmail.com' AND role = 'superadmin' AND is_active = 1",
+    args: [],
   });
-  await db.execute({
-    sql: `UPDATE users SET password = ?, role = 'superadmin', is_active = 1 WHERE email = 'peachstackadmin@gmail.com'`,
-    args: [adminPassword],
-  });
+  if (adminCheck.rows.length === 0) {
+    const bcrypt = await import('bcryptjs');
+    const adminPassword = await bcrypt.default.hash(process.env.ADMIN_PASSWORD || 'PeachAdmin2026!', 12);
+    await db.execute({
+      sql: `INSERT OR REPLACE INTO users (id, email, password, role, name, is_active) VALUES ('admin-1', 'peachstackadmin@gmail.com', ?, 'superadmin', 'Peach Stack Admin', 1)`,
+      args: [adminPassword],
+    });
+  }
 
   // Seed default platform settings
   await db.execute({

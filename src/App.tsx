@@ -9,7 +9,7 @@ import { Toaster, toast } from 'sonner';
 import { apiFetch, apiUrl } from './lib/api';
 
 // Pages
-const Landing = lazy(() => import('./pages/Landing'));
+import Landing from './pages/Landing';
 const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
 const EmployerDashboard = lazy(() => import('./pages/EmployerDashboard'));
 const GetStarted = lazy(() => import('./pages/GetStarted'));
@@ -299,9 +299,10 @@ function Navbar() {
         {isOpen && (
           <motion.div
             id="mobile-nav"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
+            initial={{ opacity: 0, clipPath: 'inset(0 0 100% 0)' }}
+            animate={{ opacity: 1, clipPath: 'inset(0 0 0% 0)' }}
+            exit={{ opacity: 0, clipPath: 'inset(0 0 100% 0)' }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
             className="border-b border-slate-100 bg-white md:hidden"
           >
             <div className="space-y-1 px-4 pb-6 pt-2">
@@ -463,10 +464,10 @@ function Footer() {
 
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-slate-900 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex flex-wrap justify-center md:justify-start gap-x-8 gap-y-2 text-xs font-medium">
-            <Link to="/terms" className="hover:text-white transition-colors">Terms</Link>
-            <Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link>
-            <Link to="/cookies" className="hover:text-white transition-colors">Cookie Settings</Link>
+          <div className="flex flex-wrap justify-center md:justify-start gap-x-6 gap-y-1 text-xs font-medium">
+            <Link to="/terms" className="hover:text-white transition-colors py-2 px-1">Terms</Link>
+            <Link to="/privacy" className="hover:text-white transition-colors py-2 px-1">Privacy</Link>
+            <Link to="/cookies" className="hover:text-white transition-colors py-2 px-1">Cookie Settings</Link>
           </div>
           <p className="text-xs text-slate-500">
             &copy; {new Date().getFullYear()} Peach Stack. All rights reserved.

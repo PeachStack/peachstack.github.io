@@ -14,7 +14,7 @@ export default function Landing() {
     <div className="overflow-hidden">
       <Helmet>
         <title>Peach Stack — Turn Zero Experience into a Career Stack</title>
-        <meta name="description" content="Real internships. Real projects. Real career outcomes. Peach Stack connects motivated students with vetted employers for high-impact work. Based in Atlanta." />
+        <meta name="description" content="Real internships. Real projects. Real career outcomes. Connect with vetted employers for high-impact work. Based in Atlanta." />
         <link rel="canonical" href="https://peachstack.github.io/" />
         <meta property="og:title" content="Peach Stack — Turn Zero Experience into a Career Stack" />
         <meta property="og:description" content="Real internships. Real projects. Real career outcomes. Peach Stack connects motivated students with vetted employers for high-impact work. Based in Atlanta." />
@@ -158,7 +158,7 @@ export default function Landing() {
                   />
                 </picture>
                 {/* Floating UI Element */}
-                <div className="absolute -bottom-6 -left-6 rounded-2xl bg-white p-6 shadow-xl md:-left-12">
+                <div className="absolute -bottom-6 left-0 sm:-left-6 rounded-2xl bg-white p-6 shadow-xl md:-left-12">
                   <div className="flex items-center gap-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600">
                       <ShieldCheck size={24} />

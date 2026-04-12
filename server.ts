@@ -783,11 +783,32 @@ export async function buildApp() {
 
   app.delete("/api/admin/projects/:id", adminApiLimiter, requireAdmin, async (req, res) => {
     try {
+      await db.execute({ sql: "DELETE FROM project_assignments WHERE project_id = ?", args: [req.params.id] });
       await db.execute({ sql: "DELETE FROM projects WHERE id = ?", args: [req.params.id] });
       res.json({ message: "Deleted" });
     } catch (err: any) {
       res.status(500).json({ message: err.message || "Failed to delete project" });
     }
+  });
+
+  // GET /api/admin/projects/:id/assignments — list user assignments for a project
+  app.get("/api/admin/projects/:id/assignments", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
+    const result = await db.execute({
+      sql: "SELECT pa.*, u.name, u.email FROM project_assignments pa JOIN users u ON pa.user_id = u.id WHERE pa.project_id = ? ORDER BY pa.created_at DESC",
+      args: [req.params.id],
+    });
+    res.json(result.rows as any[]);
+  });
+
+  // PATCH /api/admin/projects/:id/assignments/:userId — admin updates an assignment status
+  app.patch("/api/admin/projects/:id/assignments/:userId", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
+    const { status } = req.body;
+    if (!['in_progress', 'in_review', 'completed'].includes(status)) return res.status(400).json({ message: "Invalid status" });
+    await db.execute({
+      sql: "UPDATE project_assignments SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE project_id = ? AND user_id = ?",
+      args: [status, req.params.id, req.params.userId],
+    });
+    res.json({ message: "Updated" });
   });
 
   // ─── Messaging Routes ─────────────────────────────────────────────────────────
@@ -1010,6 +1031,20 @@ export async function buildApp() {
     res.json({ message: "Marked as read" });
   });
 
+  // GET /api/messages/groups/:id/members — list members (must be a group member)
+  app.get("/api/messages/groups/:id/members", adminApiLimiter, authenticate, async (req: any, res: any) => {
+    const memberCheck = await db.execute({
+      sql: "SELECT 1 FROM message_group_members WHERE group_id = ? AND user_id = ?",
+      args: [req.params.id, req.user.id],
+    });
+    if (!memberCheck.rows.length) return res.status(403).json({ message: "Not a member of this group" });
+    const result = await db.execute({
+      sql: "SELECT u.id, u.name, u.role FROM message_group_members mgm JOIN users u ON mgm.user_id = u.id WHERE mgm.group_id = ? ORDER BY u.name ASC",
+      args: [req.params.id],
+    });
+    res.json(result.rows as any[]);
+  });
+
   // POST /api/admin/messages/groups — create a group (admin only)
   app.post("/api/admin/messages/groups", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
     const { name, description, role_filter } = req.body;
@@ -1083,6 +1118,38 @@ export async function buildApp() {
     await db.execute({ sql: "DELETE FROM group_message_reads WHERE group_id = ?", args: [req.params.id] });
     await db.execute({ sql: "DELETE FROM message_groups WHERE id = ?", args: [req.params.id] });
     res.json({ message: "Group deleted" });
+  });
+
+  // GET /api/admin/messages/all-conversations — list all DM conversations across the platform (admin monitoring)
+  app.get("/api/admin/messages/all-conversations", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
+    const result = await db.execute({
+      sql: `SELECT
+              CASE WHEN m.sender_id < m.recipient_id THEN m.sender_id ELSE m.recipient_id END as user1_id,
+              CASE WHEN m.sender_id < m.recipient_id THEN m.recipient_id ELSE m.sender_id END as user2_id,
+              u1.name as user1_name, u2.name as user2_name,
+              u1.role as user1_role, u2.role as user2_role,
+              MAX(m.created_at) as last_message_at,
+              COUNT(*) as message_count
+            FROM messages m
+            JOIN users u1 ON u1.id = (CASE WHEN m.sender_id < m.recipient_id THEN m.sender_id ELSE m.recipient_id END)
+            JOIN users u2 ON u2.id = (CASE WHEN m.sender_id < m.recipient_id THEN m.recipient_id ELSE m.sender_id END)
+            GROUP BY user1_id, user2_id
+            ORDER BY last_message_at DESC`,
+      args: [],
+    });
+    res.json(result.rows as any[]);
+  });
+
+  // GET /api/admin/messages/thread/:userId1/:userId2 — view any DM thread (admin monitoring)
+  app.get("/api/admin/messages/thread/:userId1/:userId2", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
+    const result = await db.execute({
+      sql: `SELECT m.*, u.name as sender_name FROM messages m
+            JOIN users u ON m.sender_id = u.id
+            WHERE (m.sender_id = ? AND m.recipient_id = ?) OR (m.sender_id = ? AND m.recipient_id = ?)
+            ORDER BY m.created_at ASC`,
+      args: [req.params.userId1, req.params.userId2, req.params.userId2, req.params.userId1],
+    });
+    res.json(result.rows as any[]);
   });
 
   app.get("/api/admin/settings/platform", adminApiLimiter, requireAdmin, async (req, res) => {
@@ -1208,15 +1275,45 @@ export async function buildApp() {
     const profileResult = await db.execute({ sql: "SELECT intern_role FROM student_profiles WHERE user_id = ?", args: [req.user.id] });
     const profile = profileResult.rows[0] as any;
     const internRole = profile?.intern_role || null;
-    let sql = "SELECT * FROM projects WHERE status != 'closed' AND (target_role = 'all'";
-    const args: any[] = [];
+    let sql = `SELECT p.*, pa.status as my_status, pa.id as assignment_id
+               FROM projects p
+               LEFT JOIN project_assignments pa ON pa.project_id = p.id AND pa.user_id = ?
+               WHERE p.status != 'closed' AND (p.target_role = 'all'`;
+    const args: any[] = [req.user.id];
     if (internRole) {
-      sql += " OR target_role = ?";
+      sql += " OR p.target_role = ?";
       args.push(internRole);
     }
-    sql += ") ORDER BY created_at DESC";
+    sql += ") ORDER BY p.created_at DESC";
     const result = await db.execute({ sql, args });
     res.json((result.rows as any[]).map((p) => ({ ...p, skills_required: JSON.parse(p.skills_required || "[]") })));
+  });
+
+  // POST /api/workspace/projects/:id/join — join a project (creates an assignment)
+  app.post("/api/workspace/projects/:id/join", studentApiLimiter, authenticate, async (req: any, res: any) => {
+    const projectResult = await db.execute({ sql: "SELECT id FROM projects WHERE id = ?", args: [req.params.id] });
+    if (!projectResult.rows.length) return res.status(404).json({ message: "Project not found" });
+    try {
+      await db.execute({
+        sql: "INSERT OR IGNORE INTO project_assignments (id, project_id, user_id) VALUES (?, ?, ?)",
+        args: [crypto.randomUUID(), req.params.id, req.user.id],
+      });
+      res.json({ message: "Joined project" });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to join project" });
+    }
+  });
+
+  // PATCH /api/workspace/projects/:id/status — update own project assignment status
+  app.patch("/api/workspace/projects/:id/status", studentApiLimiter, authenticate, async (req: any, res: any) => {
+    const { status } = req.body;
+    if (!['in_progress', 'in_review'].includes(status)) return res.status(400).json({ message: "Invalid status" });
+    const updated = await db.execute({
+      sql: "UPDATE project_assignments SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE project_id = ? AND user_id = ?",
+      args: [status, req.params.id, req.user.id],
+    });
+    if (!updated.rowsAffected) return res.status(404).json({ message: "Assignment not found — join the project first" });
+    res.json({ message: "Status updated" });
   });
 
   app.get("/api/workspace/notifications", studentApiLimiter, authenticate, async (req: any, res: any) => {
@@ -1280,13 +1377,18 @@ export async function buildApp() {
     const { currentPassword, newPassword } = req.body;
     if (!currentPassword || !newPassword) return res.status(400).json({ message: "Current and new password are required" });
     if (newPassword.length < 8) return res.status(400).json({ message: "New password must be at least 8 characters" });
-    const result = await db.execute({ sql: "SELECT password FROM users WHERE id = ?", args: [req.user.id] });
+    const result = await db.execute({ sql: "SELECT password, email, role, name FROM users WHERE id = ?", args: [req.user.id] });
     const user = result.rows[0] as any;
     if (!user) return res.status(404).json({ message: "User not found" });
     const valid = await bcrypt.compare(currentPassword, user.password);
     if (!valid) return res.status(401).json({ message: "Current password is incorrect" });
     const hashed = await bcrypt.hash(newPassword, 12);
     await db.execute({ sql: "UPDATE users SET password = ?, token_version = token_version + 1 WHERE id = ?", args: [hashed, req.user.id] });
+    // Re-fetch updated token_version and issue a new JWT so the session stays valid after the password change
+    const updated = await db.execute({ sql: "SELECT token_version FROM users WHERE id = ?", args: [req.user.id] });
+    const tokenVersion = (updated.rows[0] as any).token_version;
+    const newToken = jwt.sign({ id: req.user.id, email: user.email, role: user.role, name: user.name, tokenVersion }, JWT_SECRET, { expiresIn: "24h" });
+    res.cookie("token", newToken, getCookieOptions(req));
     res.json({ message: "Password updated successfully" });
   });
 

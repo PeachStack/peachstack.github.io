@@ -14,6 +14,8 @@ interface ApiProject {
   compensation?: string;
   deadline?: string;
   target_role?: string;
+  my_status?: string | null;
+  assignment_id?: string | null;
 }
 
 interface ApiTask {
@@ -418,12 +420,37 @@ export default function Workspace() {
   }, [navigate]);
 
   const updateTaskStatus = async (id: string, status: string) => {
-    await fetch(apiUrl(`/api/tasks/${id}`), {
+    await fetch(apiUrl(`/api/workspace/tasks/${id}/submit`), {
       method: 'PATCH', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     });
     setTasks(prev => prev.map(t => t.id === id ? { ...t, status } : t));
+  };
+
+  const joinProject = async (id: string) => {
+    await fetch(apiUrl(`/api/workspace/projects/${id}/join`), {
+      method: 'POST', credentials: 'include',
+    });
+    setProjects(prev => prev.map(p => p.id === id ? { ...p, my_status: 'in_progress' } : p));
+  };
+
+  const submitProject = async (id: string) => {
+    await fetch(apiUrl(`/api/workspace/projects/${id}/status`), {
+      method: 'PATCH', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'in_review' }),
+    });
+    setProjects(prev => prev.map(p => p.id === id ? { ...p, my_status: 'in_review' } : p));
+  };
+
+  const unsubmitProject = async (id: string) => {
+    await fetch(apiUrl(`/api/workspace/projects/${id}/status`), {
+      method: 'PATCH', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'in_progress' }),
+    });
+    setProjects(prev => prev.map(p => p.id === id ? { ...p, my_status: 'in_progress' } : p));
   };
 
   const getPriorityLabel = (priority: string) => priority.charAt(0).toUpperCase() + priority.slice(1);
@@ -582,44 +609,86 @@ export default function Workspace() {
                   <p className="text-xs mt-1">Projects assigned to your role will appear here</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {projects.map((project) => (
-                    <div key={project.id} className="rounded-2xl border border-slate-100 bg-white p-5 flex flex-col gap-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-peach-50 text-peach-500">
-                            <Briefcase size={18} />
-                          </div>
-                          <div>
-                            <h4 className="text-sm font-bold text-slate-900">{project.title}</h4>
-                            {project.compensation && <p className="text-xs text-slate-500">💰 {project.compensation}</p>}
+                <div className="space-y-3">
+                  {projects.map((project) => {
+                    const isSubmitted = project.my_status === 'in_review' || project.my_status === 'completed';
+                    const isCompleted = project.my_status === 'completed';
+                    const isJoined = !!project.my_status;
+                    return (
+                      <motion.div
+                        key={project.id}
+                        layout
+                        className={cn(
+                          "flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-4 transition-all",
+                          isCompleted ? "opacity-60 grayscale" : "hover:shadow-sm"
+                        )}
+                      >
+                        <button
+                          disabled={isCompleted || !isJoined}
+                          onClick={() => {
+                            if (isSubmitted) unsubmitProject(project.id);
+                            else if (isJoined) submitProject(project.id);
+                          }}
+                          className={cn(
+                            "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-2 transition-all",
+                            isCompleted
+                              ? "bg-green-500 border-green-500 text-white cursor-not-allowed"
+                              : isSubmitted
+                              ? "bg-peach-500 border-peach-500 text-white hover:bg-peach-600"
+                              : isJoined
+                              ? "border-slate-200 hover:border-peach-500"
+                              : "border-slate-100 cursor-default opacity-40"
+                          )}
+                          title={isCompleted ? 'Completed' : isSubmitted ? 'Click to take back' : isJoined ? 'Mark as done' : 'Join project first'}
+                        >
+                          {(isSubmitted || isCompleted) && <CheckCircle2 size={14} />}
+                        </button>
+                        <div className="flex-grow min-w-0">
+                          <div className="flex items-start gap-2">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-peach-50 text-peach-500">
+                              <Briefcase size={14} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className={cn("text-sm font-bold text-slate-900", isCompleted && "line-through")}>{project.title}</h4>
+                              <p className="text-xs text-slate-500 line-clamp-1">{project.description}</p>
+                              {project.skills_required?.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {project.skills_required.slice(0, 3).map(skill => (
+                                    <span key={skill} className="px-1.5 py-0.5 bg-peach-50 text-peach-700 rounded text-[10px] font-medium">{skill}</span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
-                        <span className={cn(
-                          "shrink-0 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wider",
-                          project.status === 'open' ? 'bg-green-50 text-green-600' :
-                          project.status === 'in-progress' ? 'bg-blue-50 text-blue-600' :
-                          'bg-slate-100 text-slate-500'
-                        )}>
-                          {project.status}
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-500 line-clamp-2">{project.description}</p>
-                      {project.skills_required?.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {project.skills_required.slice(0, 5).map(skill => (
-                            <span key={skill} className="px-2 py-0.5 bg-peach-50 text-peach-700 rounded text-xs font-medium">{skill}</span>
-                          ))}
+                        <div className="flex items-center gap-2 shrink-0">
+                          {project.deadline && (
+                            <div className="hidden sm:flex items-center gap-1 text-xs font-medium text-slate-400">
+                              <Clock size={12} />
+                              {new Date(project.deadline).toLocaleDateString()}
+                            </div>
+                          )}
+                          {!isJoined ? (
+                            <button
+                              onClick={() => joinProject(project.id)}
+                              className="px-3 py-1 rounded-lg bg-peach-500 text-white text-xs font-bold hover:bg-peach-600 transition-colors"
+                            >
+                              Join
+                            </button>
+                          ) : (
+                            <span className={cn(
+                              "rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wider",
+                              isCompleted ? 'bg-green-50 text-green-600' :
+                              isSubmitted ? 'bg-blue-50 text-blue-600' :
+                              'bg-amber-50 text-amber-600'
+                            )}>
+                              {isCompleted ? 'Done' : isSubmitted ? 'In Review' : 'In Progress'}
+                            </span>
+                          )}
                         </div>
-                      )}
-                      {project.deadline && (
-                        <p className="text-xs text-slate-400 flex items-center gap-1">
-                          <Clock size={12} />
-                          Due {new Date(project.deadline).toLocaleDateString()}
-                        </p>
-                      )}
-                    </div>
-                  ))}
+                      </motion.div>
+                    );
+                  })}
                 </div>
               )}
             </section>

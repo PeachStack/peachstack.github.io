@@ -4,6 +4,7 @@ import { cn } from '../lib/utils';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { apiUrl } from '../lib/api';
+import { Helmet } from 'react-helmet-async';
 
 export default function Contact() {
   const [form, setForm] = useState({ name: '', email: '', message: '' });
@@ -36,6 +37,11 @@ export default function Contact() {
 
   return (
     <div className="min-h-screen bg-white py-24">
+      <Helmet>
+        <title>Contact — Peach Stack</title>
+        <meta name="description" content="Get in touch with the Peach Stack team. Questions about internships, partnerships, or working together? We'd love to hear from you." />
+        <link rel="canonical" href="https://peachstack.github.io/contact" />
+      </Helmet>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-start">
           {/* Left Side: Info */}
@@ -77,7 +83,7 @@ export default function Contact() {
                   <MessageSquare size={20} className="text-peach-400" />
                   Response Time
                 </h4>
-                <p className="text-slate-400 text-sm mb-6">Our team reviews messages Monday – Friday. We aim to respond within 1–2 business days.</p>
+                <p className="text-slate-500 text-sm mb-6">Our team reviews messages Monday – Friday. We aim to respond within 1–2 business days.</p>
                 <div className="flex items-center gap-2 text-xs font-bold text-green-400">
                   <CheckCircle2 size={14} />
                   Average response time: 24 hours

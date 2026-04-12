@@ -9,7 +9,7 @@ export default function GetStarted() {
   const [hoveredRole, setHoveredRole] = useState<'student' | 'employer' | null>(null);
 
   const EMPLOYER_FORM_URL = 'https://docs.google.com/forms/d/1uz55KEIkH3XwnVJxvdQgMMByidmsQRB9dRkVWLJb8p0/viewform';
-  const STUDENT_FORM_URL = 'https://forms.gle/8nDwdqpbnXuYnhj76';
+  const STUDENT_FORM_URL = 'https://forms.gle/8nDwdqpbnXuYnhj76?utm_source=peachstack&utm_medium=website&utm_campaign=get_started_page';
 
   const handleSelection = (role: 'student' | 'employer') => {
     if (role === 'student') {

@@ -8,7 +8,7 @@ interface PeachLogoProps {
 export default function PeachLogo({ className = '', size = 32 }: PeachLogoProps) {
   return (
     <img
-      src={`${import.meta.env.BASE_URL}peach-logo.png.png`}
+      src={`${import.meta.env.BASE_URL}peach-logo.png`}
       alt="Peach Stack logo"
       width={size}
       height={size}

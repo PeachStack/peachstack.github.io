@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import { ExternalLink, Sparkles } from 'lucide-react';
 
 const GOOGLE_FORM_URL = 'https://forms.gle/8nDwdqpbnXuYnhj76';
+const SIGNUP_CTA_URL = `${GOOGLE_FORM_URL}?utm_source=peachstack&utm_medium=website&utm_campaign=signup_page`;
 
 export default function StudentSignup() {
   return (
@@ -20,7 +21,7 @@ export default function StudentSignup() {
           Applications are reviewed personally. Click below to fill out our short application form, which takes about 5 minutes.
         </p>
         <a
-          href={GOOGLE_FORM_URL}
+          href={SIGNUP_CTA_URL}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 rounded-2xl bg-peach-500 px-8 py-4 text-lg font-bold text-white shadow-xl shadow-peach-200 transition-all hover:bg-peach-600 active:scale-95"

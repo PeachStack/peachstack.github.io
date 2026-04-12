@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, MotionConfig } from 'motion/react';
 import { Menu, X, GraduationCap, ChevronDown, User, Settings as SettingsIcon, LogOut, Building2, Mail, Linkedin } from 'lucide-react';
 import PeachLogo from './components/ui/PeachLogo';
 import ScrollToTop from './components/ScrollToTop';
@@ -214,7 +214,7 @@ function Navbar() {
                       className="absolute right-0 mt-2 w-56 origin-top-right rounded-2xl border border-slate-100 bg-white p-2 shadow-xl z-20"
                     >
                       <div className="px-3 py-2 border-b border-slate-50 mb-1">
-                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Account</p>
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Account</p>
                       </div>
                       <Link
                         to={userRole === 'employer' ? '/employer' : '/student'}
@@ -270,6 +270,9 @@ function Navbar() {
         <div className="flex md:hidden">
           <button
             onClick={() => setIsOpen(!isOpen)}
+            aria-label={isOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={isOpen}
+            aria-controls="mobile-nav"
             className="inline-flex items-center justify-center rounded-md p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus:outline-none"
           >
             {isOpen ? <X size={24} /> : <Menu size={24} />}
@@ -281,6 +284,7 @@ function Navbar() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            id="mobile-nav"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -334,7 +338,7 @@ function Navbar() {
                 {userName ? (
                   <div className="space-y-1">
                     <div className="px-3 py-2 border-b border-slate-50 mb-2">
-                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Account</p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Account</p>
                     </div>
                     <Link
                       to={userRole === 'employer' ? '/employer' : '/student'}
@@ -392,7 +396,7 @@ function Navbar() {
 
 function Footer() {
   const EMPLOYER_FORM_URL = 'https://docs.google.com/forms/d/1uz55KEIkH3XwnVJxvdQgMMByidmsQRB9dRkVWLJb8p0/viewform';
-  const STUDENT_FORM_URL = 'https://forms.gle/8nDwdqpbnXuYnhj76';
+  const STUDENT_FORM_URL = 'https://forms.gle/8nDwdqpbnXuYnhj76?utm_source=peachstack&utm_medium=website&utm_campaign=footer';
 
   return (
     <footer className="bg-slate-950 text-slate-400 py-16 border-t border-slate-900">
@@ -494,37 +498,37 @@ function MainApp() {
     <div className="flex min-h-screen flex-col font-sans">
       <ScrollToTop />
       <Navbar />
-      <main className="flex-grow">
-          <Suspense fallback={null}>
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/student" element={<StudentDashboard />} />
-              <Route path="/employer" element={<EmployerDashboard />} />
-              <Route path="/workspace" element={<Workspace />} />
-              <Route path="/workspace/login" element={<WorkspaceLogin />} />
-              <Route path="/workspace/messages" element={<WorkspaceMessages />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/get-started" element={<GetStarted />} />
-              <Route path="/for-employers" element={<ForEmployers />} />
-              <Route path="/apply" element={<Apply />} />
-              <Route path="/student/signup" element={<Apply />} />
-              <Route path="/employer/onboarding" element={<EmployerOnboarding />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/cookies" element={<Cookies />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/creators" element={<About />} />
-              <Route path="/community" element={<Community />} />
-              <Route path="/blog" element={<BlogPage />} />
-              <Route path="/developers" element={<Developers />} />
-              <Route path="/safety" element={<Safety />} />
-              <Route path="/guidelines" element={<Guidelines />} />
-              <Route path="*" element={<ComingSoon />} />
-            </Routes>
-          </Suspense>
-        </main>
+<main id="main-content" className="flex-grow">
+        <Suspense fallback={null}>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/student" element={<StudentDashboard />} />
+            <Route path="/employer" element={<EmployerDashboard />} />
+            <Route path="/workspace" element={<Workspace />} />
+            <Route path="/workspace/login" element={<WorkspaceLogin />} />
+            <Route path="/workspace/messages" element={<WorkspaceMessages />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/get-started" element={<GetStarted />} />
+            <Route path="/for-employers" element={<ForEmployers />} />
+            <Route path="/apply" element={<Apply />} />
+            <Route path="/student/signup" element={<Apply />} />
+            <Route path="/employer/onboarding" element={<EmployerOnboarding />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/cookies" element={<Cookies />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/creators" element={<About />} />
+            <Route path="/community" element={<Community />} />
+            <Route path="/blog" element={<BlogPage />} />
+            <Route path="/developers" element={<Developers />} />
+            <Route path="/safety" element={<Safety />} />
+            <Route path="/guidelines" element={<Guidelines />} />
+            <Route path="*" element={<ComingSoon />} />
+          </Routes>
+        </Suspense>
+      </main>
       <Footer />
     </div>
   );
@@ -532,8 +536,10 @@ function MainApp() {
 
 export default function App() {
   return (
-    <Router>
-      <MainApp />
-    </Router>
+    <MotionConfig reducedMotion="user">
+      <Router>
+        <MainApp />
+      </Router>
+    </MotionConfig>
   );
 }

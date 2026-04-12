@@ -7,7 +7,7 @@ import PriorityBadge from '../../components/admin/PriorityBadge';
 
 const STATUSES = ['open', 'in_progress', 'in_review', 'completed', 'blocked'] as const;
 
-interface Task { id: string; title: string; description: string; status: string; priority: string; assignee_name?: string; due_date?: string; tags: string[]; project_label?: string; }
+interface Task { id: string; title: string; description: string; status: string; priority: string; assignee_name?: string; due_date?: string; tags: string[]; project_label?: string; project_lead_name?: string; }
 
 export default function Tasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -215,11 +215,28 @@ export default function Tasks() {
                       <>
                         <Folder size={14} className="text-peach-500 shrink-0" />
                         <span className="text-sm font-bold text-slate-900">{key}</span>
+                        {(() => {
+                          const leadName = groupTasks.find(t => t.project_lead_name)?.project_lead_name;
+                          return leadName ? <span className="text-xs text-slate-500 font-medium">· Lead: {leadName}</span> : null;
+                        })()}
                       </>
                     ) : (
                       <span className="text-sm font-semibold text-slate-500">Ungrouped Tasks</span>
                     )}
                     <span className="ml-auto text-xs font-bold text-slate-400 bg-slate-200 rounded-full px-2 py-0.5">{groupTasks.length}</span>
+                    {(() => {
+                      const completedCount = groupTasks.filter(t => t.status === 'completed').length;
+                      const totalCount = groupTasks.length;
+                      const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+                      return (
+                        <div className="flex items-center gap-2 ml-3">
+                          <div className="w-24 h-2 bg-slate-200 rounded-full overflow-hidden">
+                            <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${progressPercent}%` }} />
+                          </div>
+                          <span className="text-xs text-slate-400">{completedCount}/{totalCount}</span>
+                        </div>
+                      );
+                    })()}
                   </button>
                   {!isCollapsed && (
                     <table className="w-full text-sm">

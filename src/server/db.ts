@@ -235,6 +235,8 @@ export async function initDb() {
   // Add missing columns to existing tables (safe to run multiple times)
   try { await db.execute({ sql: "ALTER TABLE projects ADD COLUMN target_role TEXT DEFAULT 'all'", args: [] }); } catch { /* column already exists */ }
   try { await db.execute({ sql: "ALTER TABLE projects ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP", args: [] }); } catch { /* column already exists */ }
+  try { await db.execute({ sql: "ALTER TABLE projects ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP", args: [] }); } catch { /* column already exists */ }
+  try { await db.execute({ sql: "ALTER TABLE projects ADD COLUMN created_by TEXT", args: [] }); } catch { /* column already exists */ }
   try { await db.execute({ sql: "ALTER TABLE tasks ADD COLUMN estimated_hours REAL", args: [] }); } catch { /* column already exists */ }
   try { await db.execute({ sql: "ALTER TABLE tasks ADD COLUMN actual_hours REAL", args: [] }); } catch { /* column already exists */ }
 

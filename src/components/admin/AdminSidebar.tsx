@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, ListTodo, Briefcase, CalendarDays, Mail, BarChart3, Settings, ExternalLink, LogOut, X, MessageSquare, Calendar } from 'lucide-react';
+import { LayoutDashboard, Users, ListTodo, Briefcase, CalendarDays, Mail, BarChart3, Settings, ExternalLink, LogOut, X, MessageSquare, Calendar, Inbox } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { apiUrl } from '../../lib/api';
 import { useState, useEffect } from 'react';
@@ -21,6 +21,7 @@ interface Props { onClose?: () => void; }
 export default function AdminSidebar({ onClose }: Props) {
   const location = useLocation();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadContacts, setUnreadContacts] = useState(0);
 
   useEffect(() => {
     const fetchUnread = () => {
@@ -29,8 +30,15 @@ export default function AdminSidebar({ onClose }: Props) {
         .then(data => setUnreadCount(data.count || 0))
         .catch(() => {});
     };
+    const fetchUnreadContacts = () => {
+      fetch(apiUrl('/api/admin/contacts'), { credentials: 'include' })
+        .then(r => r.ok ? r.json() : [])
+        .then((data: any[]) => setUnreadContacts(Array.isArray(data) ? data.filter((c: any) => c.status === 'unread').length : 0))
+        .catch(() => {});
+    };
     fetchUnread();
-    const interval = setInterval(fetchUnread, 30000);
+    fetchUnreadContacts();
+    const interval = setInterval(() => { fetchUnread(); fetchUnreadContacts(); }, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -58,6 +66,13 @@ export default function AdminSidebar({ onClose }: Props) {
           <span className="flex-1">Messages</span>
           {unreadCount > 0 && (
             <span className="h-5 min-w-[20px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">{unreadCount}</span>
+          )}
+        </Link>
+        <Link to="/admin/contacts" className={cn('flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors', location.pathname.startsWith('/admin/contacts') ? 'bg-peach-500 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white')}>
+          <Inbox size={18} />
+          <span className="flex-1">Inquiries</span>
+          {unreadContacts > 0 && (
+            <span className="h-5 min-w-[20px] px-1 rounded-full bg-peach-500 text-white text-[10px] font-bold flex items-center justify-center">{unreadContacts}</span>
           )}
         </Link>
       </nav>

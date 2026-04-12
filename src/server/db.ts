@@ -71,6 +71,7 @@ export async function initDb() {
       deadline DATETIME,
       compensation TEXT,
       target_role TEXT DEFAULT 'all',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(employer_id) REFERENCES users(id)
     );
 
@@ -232,6 +233,7 @@ export async function initDb() {
 
   // Add missing columns to existing tables (safe to run multiple times)
   try { await db.execute({ sql: "ALTER TABLE projects ADD COLUMN target_role TEXT DEFAULT 'all'", args: [] }); } catch { /* column already exists */ }
+  try { await db.execute({ sql: "ALTER TABLE projects ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP", args: [] }); } catch { /* column already exists */ }
   try { await db.execute({ sql: "ALTER TABLE tasks ADD COLUMN estimated_hours REAL", args: [] }); } catch { /* column already exists */ }
 
   // Seed superadmin unconditionally on every boot

@@ -32,7 +32,7 @@ const sections = [
           <li>All project deliverables and compensation terms must be documented in writing before work begins.</li>
           <li>Students may not be asked to perform tasks outside the agreed project scope without renegotiated terms.</li>
           <li>Employers may not contact students outside of Peach Stack-facilitated channels without consent.</li>
-          <li>Student work product is protected — employers may not claim ownership of work without proper written agreement.</li>
+          <li>Student work product is protected. Employers may not claim ownership of work without proper written agreement.</li>
         </ul>
       </div>
     ),
@@ -59,8 +59,8 @@ const sections = [
     title: 'Dispute Resolution',
     content: (
       <p className="text-slate-600 leading-relaxed">
-        If a dispute arises between a student and an employer — regarding payment, project scope,
-        feedback, or conduct — either party may escalate to Peach Stack by emailing{' '}
+        If a dispute arises between a student and an employer regarding payment, project scope,
+        feedback, or conduct, either party may escalate to Peach Stack by emailing{' '}
         <a href="mailto:peachstackadmin@gmail.com" className="text-peach-600 font-bold hover:underline">
           peachstackadmin@gmail.com
         </a>
@@ -75,7 +75,7 @@ const sections = [
     title: 'Data Security',
     content: (
       <p className="text-slate-600 leading-relaxed">
-        Student personal information — including contact details, resume, and school records — is
+        Student personal information (including contact details, resume, and school records) is
         never shared with employers without the student's explicit consent. We use industry-standard
         encryption for data in transit and at rest. Access to student records is restricted to
         Peach Stack staff only. For a full breakdown of how we handle your data, see our{' '}
@@ -90,8 +90,8 @@ const sections = [
     title: 'Emergency Contact',
     content: (
       <p className="text-slate-600 leading-relaxed">
-        For urgent safety concerns — including situations where a student feels unsafe or is being
-        pressured — contact us immediately at{' '}
+        For urgent safety concerns (including situations where a student feels unsafe or is being
+        pressured), contact us immediately at{' '}
         <a href="mailto:peachstackadmin@gmail.com" className="text-peach-600 font-bold hover:underline">
           peachstackadmin@gmail.com
         </a>{' '}

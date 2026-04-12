@@ -88,6 +88,7 @@ export async function initDb() {
       task_type TEXT DEFAULT 'regular' CHECK(task_type IN ('regular', 'challenge')),
       due_date DATETIME,
       estimated_hours REAL,
+      actual_hours REAL,
       points INTEGER DEFAULT 10,
       tags TEXT,
       submission_url TEXT,
@@ -235,6 +236,7 @@ export async function initDb() {
   try { await db.execute({ sql: "ALTER TABLE projects ADD COLUMN target_role TEXT DEFAULT 'all'", args: [] }); } catch { /* column already exists */ }
   try { await db.execute({ sql: "ALTER TABLE projects ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP", args: [] }); } catch { /* column already exists */ }
   try { await db.execute({ sql: "ALTER TABLE tasks ADD COLUMN estimated_hours REAL", args: [] }); } catch { /* column already exists */ }
+  try { await db.execute({ sql: "ALTER TABLE tasks ADD COLUMN actual_hours REAL", args: [] }); } catch { /* column already exists */ }
 
   // Seed superadmin only when the account does not exist yet.
   // Skipping bcrypt on warm/cold restarts keeps startup fast.

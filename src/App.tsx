@@ -3,55 +3,55 @@ import { motion, AnimatePresence, MotionConfig } from 'motion/react';
 import { Menu, X, GraduationCap, ChevronDown, User, Settings as SettingsIcon, LogOut, Building2, Mail, Linkedin } from 'lucide-react';
 import PeachLogo from './components/ui/PeachLogo';
 import ScrollToTop from './components/ScrollToTop';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { cn } from './lib/utils';
 import { Toaster, toast } from 'sonner';
 import { apiFetch } from './lib/api';
 
 // Pages
-import Landing from './pages/Landing';
-import StudentDashboard from './pages/StudentDashboard';
-import EmployerDashboard from './pages/EmployerDashboard';
-import GetStarted from './pages/GetStarted';
-import StudentSignup from './pages/StudentSignup';
-import EmployerOnboarding from './pages/EmployerOnboarding';
-import ForEmployers from './pages/ForEmployers';
-import Login from './pages/Login';
-import Workspace from './pages/Workspace';
-import WorkspaceLogin from './pages/WorkspaceLogin';
-import Settings from './pages/Settings';
-import Privacy from './pages/Privacy';
-import Terms from './pages/Terms';
-import Cookies from './pages/Cookies';
-import Contact from './pages/Contact';
-import Apply from './pages/Apply';
-import ComingSoon from './pages/ComingSoon';
-import About from './pages/About';
-import Community from './pages/Community';
-import BlogPage from './pages/BlogPage';
-import Developers from './pages/Developers';
-import Safety from './pages/Safety';
-import Guidelines from './pages/Guidelines';
+const Landing = lazy(() => import('./pages/Landing'));
+const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
+const EmployerDashboard = lazy(() => import('./pages/EmployerDashboard'));
+const GetStarted = lazy(() => import('./pages/GetStarted'));
+const StudentSignup = lazy(() => import('./pages/StudentSignup'));
+const EmployerOnboarding = lazy(() => import('./pages/EmployerOnboarding'));
+const ForEmployers = lazy(() => import('./pages/ForEmployers'));
+const Login = lazy(() => import('./pages/Login'));
+const Workspace = lazy(() => import('./pages/Workspace'));
+const WorkspaceLogin = lazy(() => import('./pages/WorkspaceLogin'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Privacy = lazy(() => import('./pages/Privacy'));
+const Terms = lazy(() => import('./pages/Terms'));
+const Cookies = lazy(() => import('./pages/Cookies'));
+const Contact = lazy(() => import('./pages/Contact'));
+const Apply = lazy(() => import('./pages/Apply'));
+const ComingSoon = lazy(() => import('./pages/ComingSoon'));
+const About = lazy(() => import('./pages/About'));
+const Community = lazy(() => import('./pages/Community'));
+const BlogPage = lazy(() => import('./pages/BlogPage'));
+const Developers = lazy(() => import('./pages/Developers'));
+const Safety = lazy(() => import('./pages/Safety'));
+const Guidelines = lazy(() => import('./pages/Guidelines'));
 
 // Admin Pages
-import AdminLogin from './pages/admin/AdminLogin';
-import AdminLayout from './pages/admin/AdminLayout';
-import AdminDashboard from './pages/admin/Dashboard';
-import AdminInterns from './pages/admin/Interns';
-import AdminInternDetail from './pages/admin/InternDetail';
-import AdminTasks from './pages/admin/Tasks';
-import AdminTaskCreate from './pages/admin/TaskCreate';
-import AdminTaskDetail from './pages/admin/TaskDetail';
-import AdminProjects from './pages/admin/Projects';
-import AdminCohorts from './pages/admin/Cohorts';
-import AdminCommunications from './pages/admin/Communications';
-import AdminAnalytics from './pages/admin/Analytics';
-import AdminSettings from './pages/admin/Settings';
-import AdminTeam from './pages/admin/Team';
-import AdminMessages from './pages/admin/Messages';
-import AdminCalendar from './pages/admin/Calendar';
-import AdminContactSubmissions from './pages/admin/ContactSubmissions';
-import WorkspaceMessages from './pages/workspace/Messages';
+const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'));
+const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'));
+const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const AdminInterns = lazy(() => import('./pages/admin/Interns'));
+const AdminInternDetail = lazy(() => import('./pages/admin/InternDetail'));
+const AdminTasks = lazy(() => import('./pages/admin/Tasks'));
+const AdminTaskCreate = lazy(() => import('./pages/admin/TaskCreate'));
+const AdminTaskDetail = lazy(() => import('./pages/admin/TaskDetail'));
+const AdminProjects = lazy(() => import('./pages/admin/Projects'));
+const AdminCohorts = lazy(() => import('./pages/admin/Cohorts'));
+const AdminCommunications = lazy(() => import('./pages/admin/Communications'));
+const AdminAnalytics = lazy(() => import('./pages/admin/Analytics'));
+const AdminSettings = lazy(() => import('./pages/admin/Settings'));
+const AdminTeam = lazy(() => import('./pages/admin/Team'));
+const AdminMessages = lazy(() => import('./pages/admin/Messages'));
+const AdminCalendar = lazy(() => import('./pages/admin/Calendar'));
+const AdminContactSubmissions = lazy(() => import('./pages/admin/ContactSubmissions'));
+const WorkspaceMessages = lazy(() => import('./pages/workspace/Messages'));
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -469,26 +469,28 @@ function MainApp() {
 
   if (isAdminRoute) {
     return (
-      <Routes>
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="interns" element={<AdminInterns />} />
-          <Route path="interns/:id" element={<AdminInternDetail />} />
-          <Route path="tasks" element={<AdminTasks />} />
-          <Route path="tasks/create" element={<AdminTaskCreate />} />
-          <Route path="tasks/:id" element={<AdminTaskDetail />} />
-          <Route path="projects" element={<AdminProjects />} />
-          <Route path="cohorts" element={<AdminCohorts />} />
-          <Route path="communications" element={<AdminCommunications />} />
-          <Route path="analytics" element={<AdminAnalytics />} />
-          <Route path="settings" element={<AdminSettings />} />
-          <Route path="team" element={<AdminTeam />} />
-          <Route path="messages" element={<AdminMessages />} />
-          <Route path="calendar" element={<AdminCalendar />} />
-          <Route path="contacts" element={<AdminContactSubmissions />} />
-        </Route>
-      </Routes>
+      <Suspense fallback={null}>
+        <Routes>
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="interns" element={<AdminInterns />} />
+            <Route path="interns/:id" element={<AdminInternDetail />} />
+            <Route path="tasks" element={<AdminTasks />} />
+            <Route path="tasks/create" element={<AdminTaskCreate />} />
+            <Route path="tasks/:id" element={<AdminTaskDetail />} />
+            <Route path="projects" element={<AdminProjects />} />
+            <Route path="cohorts" element={<AdminCohorts />} />
+            <Route path="communications" element={<AdminCommunications />} />
+            <Route path="analytics" element={<AdminAnalytics />} />
+            <Route path="settings" element={<AdminSettings />} />
+            <Route path="team" element={<AdminTeam />} />
+            <Route path="messages" element={<AdminMessages />} />
+            <Route path="calendar" element={<AdminCalendar />} />
+            <Route path="contacts" element={<AdminContactSubmissions />} />
+          </Route>
+        </Routes>
+      </Suspense>
     );
   }
 
@@ -496,34 +498,36 @@ function MainApp() {
     <div className="flex min-h-screen flex-col font-sans">
       <ScrollToTop />
       <Navbar />
-      <main id="main-content" className="flex-grow">
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/student" element={<StudentDashboard />} />
-          <Route path="/employer" element={<EmployerDashboard />} />
-          <Route path="/workspace" element={<Workspace />} />
-          <Route path="/workspace/login" element={<WorkspaceLogin />} />
-          <Route path="/workspace/messages" element={<WorkspaceMessages />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/get-started" element={<GetStarted />} />
-          <Route path="/for-employers" element={<ForEmployers />} />
-          <Route path="/apply" element={<Apply />} />
-          <Route path="/student/signup" element={<Apply />} />
-          <Route path="/employer/onboarding" element={<EmployerOnboarding />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/cookies" element={<Cookies />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/creators" element={<About />} />
-          <Route path="/community" element={<Community />} />
-          <Route path="/blog" element={<BlogPage />} />
-          <Route path="/developers" element={<Developers />} />
-          <Route path="/safety" element={<Safety />} />
-          <Route path="/guidelines" element={<Guidelines />} />
-          <Route path="*" element={<ComingSoon />} />
-        </Routes>
+<main id="main-content" className="flex-grow">
+        <Suspense fallback={null}>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/student" element={<StudentDashboard />} />
+            <Route path="/employer" element={<EmployerDashboard />} />
+            <Route path="/workspace" element={<Workspace />} />
+            <Route path="/workspace/login" element={<WorkspaceLogin />} />
+            <Route path="/workspace/messages" element={<WorkspaceMessages />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/get-started" element={<GetStarted />} />
+            <Route path="/for-employers" element={<ForEmployers />} />
+            <Route path="/apply" element={<Apply />} />
+            <Route path="/student/signup" element={<Apply />} />
+            <Route path="/employer/onboarding" element={<EmployerOnboarding />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/cookies" element={<Cookies />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/creators" element={<About />} />
+            <Route path="/community" element={<Community />} />
+            <Route path="/blog" element={<BlogPage />} />
+            <Route path="/developers" element={<Developers />} />
+            <Route path="/safety" element={<Safety />} />
+            <Route path="/guidelines" element={<Guidelines />} />
+            <Route path="*" element={<ComingSoon />} />
+          </Routes>
+        </Suspense>
       </main>
       <Footer />
     </div>

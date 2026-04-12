@@ -83,7 +83,7 @@ export default function Contact() {
                   <MessageSquare size={20} className="text-peach-400" />
                   Response Time
                 </h4>
-                <p className="text-slate-400 text-sm mb-6">Our team reviews messages Monday – Friday. We aim to respond within 1–2 business days.</p>
+                <p className="text-slate-500 text-sm mb-6">Our team reviews messages Monday – Friday. We aim to respond within 1–2 business days.</p>
                 <div className="flex items-center gap-2 text-xs font-bold text-green-400">
                   <CheckCircle2 size={14} />
                   Average response time: 24 hours

@@ -86,7 +86,7 @@ export default function Apply() {
             <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed mb-4">
               We're building something real and we want people who are ready to build with us. All roles are fully remote. Takes about 5 minutes. Be honest and show us who you are.
             </p>
-            <p className="text-sm text-slate-400 mb-10">
+            <p className="text-sm text-slate-500 mb-10">
               We review every application personally. You'll hear from us within 1–2 weeks.
             </p>
             <a
@@ -144,7 +144,7 @@ export default function Apply() {
               Start Your Application
               <ArrowRight size={20} />
             </a>
-            <p className="mt-4 text-sm text-slate-400">Fully remote · Summer 2026 · ~5 minutes to apply</p>
+            <p className="mt-4 text-sm text-slate-500">Fully remote · Summer 2026 · ~5 minutes to apply</p>
           </div>
         </div>
       </section>

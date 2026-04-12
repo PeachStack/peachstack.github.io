@@ -97,7 +97,7 @@ export default function About() {
 
                 <div className="space-y-6">
                   <div>
-                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
                       <GraduationCap size={14} />
                       Education
                     </div>
@@ -107,7 +107,7 @@ export default function About() {
                   </div>
 
                   <div>
-                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
                       <Briefcase size={14} />
                       Previously
                     </div>
@@ -125,7 +125,7 @@ export default function About() {
 
                   {founder.tech && (
                     <div className="bg-slate-50 rounded-2xl p-4">
-                      <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Tech</p>
+                      <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">Tech</p>
                       <p className="text-slate-700 text-sm font-medium">{founder.tech}</p>
                     </div>
                   )}

@@ -101,7 +101,7 @@ export default function Landing() {
                       <ShieldCheck size={24} />
                     </div>
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Vetted Talent</p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-600">Vetted Talent</p>
                       <p className="text-lg font-bold text-slate-900">Logic Score: 98/100</p>
                     </div>
                   </div>

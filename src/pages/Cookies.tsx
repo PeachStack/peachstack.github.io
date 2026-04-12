@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
 import { Cookie, Info, Lock, Settings } from 'lucide-react';
 
-const LAST_UPDATED = 'April 11, 2026';
+const LAST_UPDATED = 'April 12, 2026';
 
 const sections = [
   {
@@ -28,8 +28,17 @@ const sections = [
           Without this cookie the platform cannot verify your identity and you will not be able to
           access your account.
         </p>
+        <p className="text-slate-600 leading-relaxed mb-4">
+          We use <strong>Google Analytics 4</strong> to collect anonymous, aggregated data about
+          how visitors interact with our website (pages visited, session duration, referral source).
+          Google Analytics may set first-party cookies (e.g.{' '}
+          <code className="bg-slate-100 px-1.5 py-0.5 rounded text-sm font-mono text-slate-800">_ga</code>,{' '}
+          <code className="bg-slate-100 px-1.5 py-0.5 rounded text-sm font-mono text-slate-800">_ga_*</code>) on
+          your device. IP addresses are anonymised before storage. We do not use this data to
+          identify individual users and we do not share it with advertisers.
+        </p>
         <p className="text-slate-600 leading-relaxed">
-          We do not use analytics cookies, advertising cookies, or any third-party tracking cookies.
+          We do not use advertising cookies or any other third-party tracking cookies.
         </p>
       </>
     ),
@@ -39,9 +48,18 @@ const sections = [
     title: 'Managing Cookies',
     content: (
       <p className="text-slate-600 leading-relaxed">
-        You can clear cookies at any time through your browser settings. Clearing the authentication
-        cookie will log you out of the platform. Because our only cookie is essential for login
-        functionality, there is no option to opt out of it while using the platform.
+        You can clear or block cookies at any time through your browser settings. Clearing the
+        authentication cookie will log you out of the platform. To opt out of Google Analytics
+        tracking across all sites, install the{' '}
+        <a
+          href="https://tools.google.com/dlpage/gaoptout"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-peach-600 font-bold hover:underline"
+        >
+          Google Analytics Opt-out Browser Add-on
+        </a>
+        .
       </p>
     ),
   },

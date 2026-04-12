@@ -498,7 +498,10 @@ export async function buildApp() {
     if (!intern) return res.status(404).json({ message: "Not found" });
     intern.skills = JSON.parse(intern.skills || "[]");
     intern.badges_earned = JSON.parse(intern.badges_earned || "[]");
-    const tasksResult = await db.execute({ sql: "SELECT * FROM tasks WHERE assigned_to = ? ORDER BY created_at DESC", args: [req.params.id] });
+    const tasksResult = await db.execute({
+      sql: "SELECT * FROM tasks WHERE assigned_to = ? OR (assigned_to LIKE '[%' AND instr(assigned_to, '\"' || ? || '\"') > 0) ORDER BY created_at DESC",
+      args: [req.params.id, req.params.id],
+    });
     res.json({ ...intern, tasks: tasksResult.rows as any[] });
   });
 
@@ -568,22 +571,37 @@ export async function buildApp() {
   });
 
   app.post("/api/admin/tasks", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
-    const { title, description, assigned_to, assigned_role, project_id, project_label, project_lead_id, priority, due_date, estimated_hours, tags, points, task_type } = req.body;
+    const { title, description, assigned_to: rawAssignedTo, assigned_role: rawAssignedRole, project_id, project_label, project_lead_id, priority, due_date, estimated_hours, tags, points, task_type } = req.body;
     if (!title || !description) return res.status(400).json({ message: "Title and description required" });
     const id = crypto.randomUUID();
     const createdBy = req.user.id;
+    // Normalize assigned_to: accept string, array of strings, or null
+    const assignedToArr: string[] = Array.isArray(rawAssignedTo)
+      ? rawAssignedTo.filter(Boolean)
+      : rawAssignedTo ? [rawAssignedTo] : [];
+    const assignedToStored = assignedToArr.length === 0 ? null
+      : assignedToArr.length === 1 ? assignedToArr[0]
+      : JSON.stringify(assignedToArr);
+    // Normalize assigned_role: accept string, array of strings, or null
+    const assignedRoleArr: string[] = Array.isArray(rawAssignedRole)
+      ? rawAssignedRole.filter(Boolean)
+      : rawAssignedRole ? [rawAssignedRole] : [];
+    const assignedRoleStored = assignedRoleArr.length === 0 ? null
+      : assignedRoleArr.length === 1 ? assignedRoleArr[0]
+      : JSON.stringify(assignedRoleArr);
     await db.execute({
       sql: "INSERT INTO tasks (id, title, description, assigned_to, assigned_role, project_id, project_label, project_lead_id, created_by, priority, due_date, estimated_hours, tags, points, task_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      args: [id, title, description, assigned_to || null, assigned_role || null, project_id || null, project_label || null, project_lead_id || null, createdBy, priority || "medium", due_date || null, estimated_hours || null, JSON.stringify(tags || []), points || 10, task_type || "regular"],
+      args: [id, title, description, assignedToStored, assignedRoleStored, project_id || null, project_label || null, project_lead_id || null, createdBy, priority || "medium", due_date || null, estimated_hours || null, JSON.stringify(tags || []), points || 10, task_type || "regular"],
     });
     await db.execute({
       sql: "INSERT INTO task_activity_log (id, task_id, user_id, action, new_value) VALUES (?, ?, ?, 'created', ?)",
       args: [crypto.randomUUID(), id, createdBy, title],
     });
-    if (assigned_to) {
+    // Send notifications to all individually assigned interns
+    for (const userId of assignedToArr) {
       await db.execute({
         sql: "INSERT INTO notifications (id, user_id, message, type) VALUES (?, ?, ?, 'task_assigned')",
-        args: [crypto.randomUUID(), assigned_to, `You have been assigned a new task: ${title}`],
+        args: [crypto.randomUUID(), userId, `You have been assigned a new task: ${title}`],
       });
     }
     res.status(201).json({ id, message: "Task created" });
@@ -1116,8 +1134,10 @@ export async function buildApp() {
       // Allow update if task is directly assigned OR if it matches the intern's role
       const profileResult = await db.execute({ sql: "SELECT intern_role FROM student_profiles WHERE user_id = ?", args: [req.user.id] });
       const internRole = (profileResult.rows[0] as any)?.intern_role || null;
-      const isAssignedToUser = task.assigned_to === req.user.id;
-      const isAssignedToRole = internRole && task.assigned_role === internRole;
+      const isAssignedToUser = task.assigned_to === req.user.id
+        || (task.assigned_to?.startsWith('[') && task.assigned_to.includes('"' + req.user.id + '"'));
+      const isAssignedToRole = internRole && (task.assigned_role === internRole
+        || (task.assigned_role?.startsWith('[') && task.assigned_role.includes('"' + internRole + '"')));
       if (!isAssignedToUser && !isAssignedToRole) {
         return res.status(403).json({ message: "Not authorized" });
       }
@@ -1138,8 +1158,10 @@ export async function buildApp() {
     if (req.user.role === "student") {
       const profileResult = await db.execute({ sql: "SELECT intern_role FROM student_profiles WHERE user_id = ?", args: [req.user.id] });
       const internRole = (profileResult.rows[0] as any)?.intern_role || null;
-      const isAssigned = task.assigned_to === req.user.id;
-      const isRoleMatch = internRole && task.assigned_role === internRole;
+      const isAssigned = task.assigned_to === req.user.id
+        || (task.assigned_to?.startsWith('[') && task.assigned_to.includes('"' + req.user.id + '"'));
+      const isRoleMatch = internRole && (task.assigned_role === internRole
+        || (task.assigned_role?.startsWith('[') && task.assigned_role.includes('"' + internRole + '"')));
       if (!isAssigned && !isRoleMatch) return res.status(403).json({ message: "Not authorized" });
     }
     const { content } = req.body;
@@ -1159,8 +1181,10 @@ export async function buildApp() {
 
     const profileResult = await db.execute({ sql: "SELECT intern_role FROM student_profiles WHERE user_id = ?", args: [req.user.id] });
     const internRole = (profileResult.rows[0] as any)?.intern_role || null;
-    const isAssigned = task.assigned_to === req.user.id;
-    const isRoleMatch = internRole && task.assigned_role === internRole;
+    const isAssigned = task.assigned_to === req.user.id
+      || (task.assigned_to?.startsWith('[') && task.assigned_to.includes('"' + req.user.id + '"'));
+    const isRoleMatch = internRole && (task.assigned_role === internRole
+      || (task.assigned_role?.startsWith('[') && task.assigned_role.includes('"' + internRole + '"')));
     if (!isAssigned && !isRoleMatch) return res.status(403).json({ message: "Not authorized" });
 
     task.tags = JSON.parse(task.tags || "[]");
@@ -1177,17 +1201,19 @@ export async function buildApp() {
     const profileResult = await db.execute({ sql: "SELECT intern_role FROM student_profiles WHERE user_id = ?", args: [req.user.id] });
     const profile = profileResult.rows[0] as any;
     const internRole = profile?.intern_role || null;
-    // Hide submission and review fields for role-based tasks not assigned to this specific user
+    const uid = req.user.id;
+    // Match tasks where the user is in assigned_to (single value or JSON array)
+    // or where their role is in assigned_role (single value or JSON array)
     let sql = `SELECT t.id, t.title, t.description, t.status, t.priority, t.task_type, t.assigned_to, t.assigned_role, t.due_date, t.estimated_hours, t.tags, t.points, t.project_label, t.project_lead_id, t.created_at, t.updated_at,
-      CASE WHEN t.assigned_to = ? THEN t.submission_url ELSE NULL END as submission_url,
-      CASE WHEN t.assigned_to = ? THEN t.submission_note ELSE NULL END as submission_note,
-      CASE WHEN t.assigned_to = ? THEN t.admin_feedback ELSE NULL END as admin_feedback,
-      CASE WHEN t.assigned_to = ? THEN t.admin_score ELSE NULL END as admin_score,
-      u.name as creator_name, pl.name as project_lead_name FROM tasks t LEFT JOIN users u ON t.created_by = u.id LEFT JOIN users pl ON t.project_lead_id = pl.id WHERE (t.assigned_to = ?`;
-    const args: any[] = [req.user.id, req.user.id, req.user.id, req.user.id, req.user.id];
+      CASE WHEN t.assigned_to = ? OR (t.assigned_to LIKE '[%' AND instr(t.assigned_to, '"' || ? || '"') > 0) THEN t.submission_url ELSE NULL END as submission_url,
+      CASE WHEN t.assigned_to = ? OR (t.assigned_to LIKE '[%' AND instr(t.assigned_to, '"' || ? || '"') > 0) THEN t.submission_note ELSE NULL END as submission_note,
+      CASE WHEN t.assigned_to = ? OR (t.assigned_to LIKE '[%' AND instr(t.assigned_to, '"' || ? || '"') > 0) THEN t.admin_feedback ELSE NULL END as admin_feedback,
+      CASE WHEN t.assigned_to = ? OR (t.assigned_to LIKE '[%' AND instr(t.assigned_to, '"' || ? || '"') > 0) THEN t.admin_score ELSE NULL END as admin_score,
+      u.name as creator_name, pl.name as project_lead_name FROM tasks t LEFT JOIN users u ON t.created_by = u.id LEFT JOIN users pl ON t.project_lead_id = pl.id WHERE (t.assigned_to = ? OR (t.assigned_to LIKE '[%' AND instr(t.assigned_to, '"' || ? || '"') > 0)`;
+    const args: any[] = [uid, uid, uid, uid, uid, uid, uid, uid, uid, uid];
     if (internRole) {
-      sql += " OR t.assigned_role = ?";
-      args.push(internRole);
+      sql += ` OR t.assigned_role = ? OR (t.assigned_role LIKE '[%' AND instr(t.assigned_role, '"' || ? || '"') > 0)`;
+      args.push(internRole, internRole);
     }
     sql += ") ORDER BY CASE WHEN t.due_date IS NULL THEN 1 ELSE 0 END ASC, t.due_date ASC, t.created_at DESC";
     const result = await db.execute({ sql, args });
@@ -1199,7 +1225,9 @@ export async function buildApp() {
     const taskResult = await db.execute({ sql: "SELECT * FROM tasks WHERE id = ?", args: [req.params.id] });
     const task = taskResult.rows[0] as any;
     if (!task) return res.status(404).json({ message: "Not found" });
-    if (task.assigned_to !== req.user.id) return res.status(403).json({ message: "Not authorized" });
+    const isDirectlyAssigned = task.assigned_to === req.user.id
+      || (task.assigned_to?.startsWith('[') && task.assigned_to.includes('"' + req.user.id + '"'));
+    if (!isDirectlyAssigned) return res.status(403).json({ message: "Not authorized" });
 
     // Allow intern to take back a submitted task (revert to in_progress)
     if (status === 'in_progress') {
@@ -1229,15 +1257,39 @@ export async function buildApp() {
     const profileResult = await db.execute({ sql: "SELECT intern_role FROM student_profiles WHERE user_id = ?", args: [req.user.id] });
     const profile = profileResult.rows[0] as any;
     const internRole = profile?.intern_role || null;
-    let sql = "SELECT * FROM calendar_events WHERE target_role = 'all' OR target_user_id = ?";
-    const args: any[] = [req.user.id];
+    const uid = req.user.id;
+
+    // Calendar events
+    let evtSql = "SELECT id, title, description, event_date, event_time, 'event' as type FROM calendar_events WHERE target_role = 'all' OR target_user_id = ?";
+    const evtArgs: any[] = [uid];
     if (internRole) {
-      sql += " OR target_role = ?";
-      args.push(internRole);
+      evtSql += " OR target_role = ?";
+      evtArgs.push(internRole);
     }
-    sql += " ORDER BY event_date ASC";
-    const result = await db.execute({ sql, args });
-    res.json(result.rows as any[]);
+
+    // Task due dates assigned to this user
+    let taskSql = `SELECT 'task_' || t.id as id, t.title, t.description, t.due_date as event_date, NULL as event_time, 'task_due' as type
+      FROM tasks t WHERE t.due_date IS NOT NULL AND t.status NOT IN ('completed','blocked')
+      AND (t.assigned_to = ? OR (t.assigned_to LIKE '[%' AND instr(t.assigned_to, '"' || ? || '"') > 0)`;
+    const taskArgs: any[] = [uid, uid];
+    if (internRole) {
+      taskSql += ` OR t.assigned_role = ? OR (t.assigned_role LIKE '[%' AND instr(t.assigned_role, '"' || ? || '"') > 0)`;
+      taskArgs.push(internRole, internRole);
+    }
+    taskSql += ")";
+
+    const [evtResult, taskResult] = await Promise.all([
+      db.execute({ sql: evtSql, args: evtArgs }),
+      db.execute({ sql: taskSql, args: taskArgs }),
+    ]);
+
+    const combined = [...(evtResult.rows as any[]), ...(taskResult.rows as any[])];
+    combined.sort((a, b) => {
+      const da = a.event_date || '';
+      const db2 = b.event_date || '';
+      return da < db2 ? -1 : da > db2 ? 1 : 0;
+    });
+    res.json(combined);
   });
 
   app.get("/api/workspace/notifications", studentApiLimiter, authenticate, async (req: any, res: any) => {

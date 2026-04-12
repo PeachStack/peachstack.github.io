@@ -32,6 +32,8 @@ export default function Login() {
       // Redirect based on role
       if (data.user.role === 'student') {
         navigate('/workspace');
+      } else if (data.user.role === 'admin' || data.user.role === 'superadmin' || data.user.isAdmin) {
+        navigate('/admin/dashboard');
       } else {
         navigate('/employer');
       }

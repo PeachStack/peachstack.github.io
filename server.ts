@@ -606,13 +606,13 @@ export async function buildApp() {
   });
 
   app.post("/api/admin/tasks", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
-    const { title, description, assigned_to, assigned_role, project_id, priority, due_date, estimated_hours, tags, points, task_type } = req.body;
+    const { title, description, assigned_to, assigned_role, project_id, project_label, priority, due_date, estimated_hours, tags, points, task_type } = req.body;
     if (!title || !description) return res.status(400).json({ message: "Title and description required" });
     const id = crypto.randomUUID();
     const createdBy = req.user.id;
     await db.execute({
-      sql: "INSERT INTO tasks (id, title, description, assigned_to, assigned_role, project_id, created_by, priority, due_date, estimated_hours, tags, points, task_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      args: [id, title, description, assigned_to || null, assigned_role || null, project_id || null, createdBy, priority || "medium", due_date || null, estimated_hours || null, JSON.stringify(tags || []), points || 10, task_type || "regular"],
+      sql: "INSERT INTO tasks (id, title, description, assigned_to, assigned_role, project_id, project_label, created_by, priority, due_date, estimated_hours, tags, points, task_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      args: [id, title, description, assigned_to || null, assigned_role || null, project_id || null, project_label || null, createdBy, priority || "medium", due_date || null, estimated_hours || null, JSON.stringify(tags || []), points || 10, task_type || "regular"],
     });
     await db.execute({
       sql: "INSERT INTO task_activity_log (id, task_id, user_id, action, new_value) VALUES (?, ?, ?, 'created', ?)",
@@ -650,7 +650,7 @@ export async function buildApp() {
     const taskResult = await db.execute({ sql: "SELECT * FROM tasks WHERE id = ?", args: [req.params.id] });
     const task = taskResult.rows[0] as any;
     if (!task) return res.status(404).json({ message: "Not found" });
-    const { title, description, status, priority, assigned_to, due_date, estimated_hours, actual_hours, tags } = req.body;
+    const { title, description, status, priority, assigned_to, due_date, estimated_hours, actual_hours, tags, project_label } = req.body;
     const userId = req.user.id;
     if (status && status !== task.status) {
       await db.execute({
@@ -675,6 +675,7 @@ export async function buildApp() {
         estimated_hours = CASE WHEN ? THEN ? ELSE estimated_hours END,
         actual_hours = CASE WHEN ? THEN ? ELSE actual_hours END,
         tags = CASE WHEN ? THEN ? ELSE tags END,
+        project_label = CASE WHEN ? THEN ? ELSE project_label END,
         updated_at = CURRENT_TIMESTAMP,
         completed_at = CASE WHEN ? = 'completed' THEN CURRENT_TIMESTAMP ELSE completed_at END
         WHERE id = ?`,
@@ -685,6 +686,7 @@ export async function buildApp() {
         estimated_hours !== undefined ? 1 : 0, estimated_hours !== undefined ? estimated_hours : null,
         actual_hours !== undefined ? 1 : 0, actual_hours !== undefined ? actual_hours : null,
         tags !== undefined ? 1 : 0, tags !== undefined ? JSON.stringify(tags) : null,
+        project_label !== undefined ? 1 : 0, project_label !== undefined ? (project_label || null) : null,
         status || null, req.params.id,
       ],
     });
@@ -1273,7 +1275,7 @@ export async function buildApp() {
     const profile = profileResult.rows[0] as any;
     const internRole = profile?.intern_role || null;
     // Hide submission and review fields for role-based tasks not assigned to this specific user
-    let sql = `SELECT t.id, t.title, t.description, t.status, t.priority, t.task_type, t.assigned_role, t.due_date, t.estimated_hours, t.tags, t.points, t.created_at, t.updated_at,
+    let sql = `SELECT t.id, t.title, t.description, t.status, t.priority, t.task_type, t.assigned_role, t.due_date, t.estimated_hours, t.tags, t.points, t.project_label, t.created_at, t.updated_at,
       CASE WHEN t.assigned_to = ? THEN t.submission_url ELSE NULL END as submission_url,
       CASE WHEN t.assigned_to = ? THEN t.submission_note ELSE NULL END as submission_note,
       CASE WHEN t.assigned_to = ? THEN t.admin_feedback ELSE NULL END as admin_feedback,

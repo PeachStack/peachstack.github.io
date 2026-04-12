@@ -37,6 +37,43 @@ export default function About() {
         <title>About — Peach Stack | Student Internship Platform in Atlanta</title>
         <meta name="description" content="Meet the founders of Peach Stack. We're UGA students building the internship platform we wish existed — real projects, real mentorship, real career outcomes." />
         <link rel="canonical" href="https://peachstack.github.io/about" />
+        <meta property="og:title" content="About — Peach Stack | Student Internship Platform in Atlanta" />
+        <meta property="og:description" content="Meet the founders of Peach Stack. We're UGA students building the internship platform we wish existed — real projects, real mentorship, real career outcomes." />
+        <meta property="og:url" content="https://peachstack.github.io/about" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://peachstack.github.io/peach-logo.png" />
+        <script type="application/ld+json">{`
+          {
+            "@context": "https://schema.org",
+            "@type": "AboutPage",
+            "url": "https://peachstack.github.io/about",
+            "name": "About Peach Stack",
+            "description": "Meet the founders of Peach Stack — Arnav Hazari and Srikar Jujala, UGA students building the internship platform for the next generation of talent.",
+            "mainEntity": {
+              "@type": "Organization",
+              "name": "Peach Stack",
+              "url": "https://peachstack.github.io",
+              "foundingLocation": "Atlanta, Georgia, USA",
+              "member": [
+                {
+                  "@type": "Person",
+                  "name": "Arnav Hazari",
+                  "jobTitle": "Co-Founder",
+                  "alumniOf": "University of Georgia",
+                  "description": "Leads product, engineering, and client strategy. Previously AI Development Fellow at Handshake and Generative AI Specialist at Uber AI Solutions.",
+                  "knowsAbout": ["Python", "SQL", "AI/ML", "Streamlit", "Pandas"]
+                },
+                {
+                  "@type": "Person",
+                  "name": "Srikar Jujala",
+                  "jobTitle": "Co-Founder",
+                  "alumniOf": "University of Georgia",
+                  "description": "Leads operations, finance, and business development. Background in risk analysis, financial modeling, and clinical operations."
+                }
+              ]
+            }
+          }
+        `}</script>
       </Helmet>
       <section className="bg-slate-950 py-24 lg:py-32 overflow-hidden relative">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center relative z-10">
@@ -87,7 +124,7 @@ export default function About() {
               >
                 <div className="flex items-start gap-6 mb-8">
                   <div className="h-16 w-16 rounded-2xl overflow-hidden shadow-lg shrink-0 bg-slate-100">
-                    <img src={`${import.meta.env.BASE_URL}${founder.avatar}`} alt={founder.name} className="h-full w-full object-cover" />
+                    <img src={`${import.meta.env.BASE_URL}${founder.avatar}`} alt={founder.name} className="h-full w-full object-cover" width="64" height="64" loading="lazy" />
                   </div>
                   <div>
                     <h3 className="font-display text-2xl font-bold text-slate-900">{founder.name}</h3>

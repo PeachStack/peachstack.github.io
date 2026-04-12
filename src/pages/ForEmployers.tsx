@@ -22,6 +22,28 @@ export default function ForEmployers() {
         <meta name="twitter:title" content="For Employers — Hire Pre-Vetted Student Talent | Peach Stack" />
         <meta name="twitter:description" content="Hire motivated, pre-vetted college students for real projects through Peach Stack. Access early talent in Atlanta and beyond. Simple onboarding, real results." />
         <meta name="twitter:image" content="https://peachstack.github.io/peach-logo.png" />
+        <script type="application/ld+json">{`
+          {
+            "@context": "https://schema.org",
+            "@type": "Service",
+            "name": "Peach Stack Employer Talent Service",
+            "description": "Hire motivated, pre-vetted college students for real projects. Peach Stack matches employers with managed student interns across sales, consulting, tech, and marketing tracks.",
+            "provider": {
+              "@type": "Organization",
+              "name": "Peach Stack",
+              "url": "https://peachstack.github.io"
+            },
+            "areaServed": {
+              "@type": "Country",
+              "name": "United States"
+            },
+            "audience": {
+              "@type": "BusinessAudience",
+              "audienceType": "Employers, Small Businesses, Startups"
+            },
+            "url": "https://peachstack.github.io/for-employers"
+          }
+        `}</script>
       </Helmet>
       {/* Hero Section */}
       <section className="relative bg-slate-950 py-24 lg:py-32 overflow-hidden">
@@ -128,11 +150,17 @@ export default function ForEmployers() {
               className="relative"
             >
               <div className="relative z-10 rounded-3xl bg-white p-2 shadow-2xl border border-slate-100 overflow-hidden">
-                <img
-                  src={`${import.meta.env.BASE_URL}crm-dashboard.png`}
-                  alt="Peach Stack CRM Dashboard"
-                  className="rounded-2xl w-full h-auto shadow-inner"
-                />
+                <picture>
+                  <source srcSet={`${import.meta.env.BASE_URL}crm-dashboard.webp`} type="image/webp" />
+                  <img
+                    src={`${import.meta.env.BASE_URL}crm-dashboard.png`}
+                    alt="Peach Stack CRM Dashboard"
+                    className="rounded-2xl w-full h-auto shadow-inner"
+                    width="1200"
+                    height="642"
+                    loading="lazy"
+                  />
+                </picture>
               </div>
               {/* Decorative background element */}
               <div className="absolute -right-10 -bottom-10 h-64 w-64 rounded-full bg-peach-100 blur-3xl -z-10" />
@@ -147,11 +175,17 @@ export default function ForEmployers() {
               className="relative order-2 lg:order-1"
             >
               <div className="relative z-10 rounded-3xl bg-white p-2 shadow-2xl border border-slate-100 overflow-hidden">
-                <img
-                  src={`${import.meta.env.BASE_URL}crm-revenue-pl.png`}
-                  alt="Revenue & P&L Page"
-                  className="rounded-2xl w-full h-auto shadow-inner"
-                />
+                <picture>
+                  <source srcSet={`${import.meta.env.BASE_URL}crm-revenue-pl.webp`} type="image/webp" />
+                  <img
+                    src={`${import.meta.env.BASE_URL}crm-revenue-pl.png`}
+                    alt="Revenue & P&L Page"
+                    className="rounded-2xl w-full h-auto shadow-inner"
+                    width="1200"
+                    height="641"
+                    loading="lazy"
+                  />
+                </picture>
               </div>
               {/* Decorative background element */}
               <div className="absolute -left-10 -top-10 h-64 w-64 rounded-full bg-blue-100 blur-3xl -z-10" />

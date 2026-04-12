@@ -16,6 +16,59 @@ export default function Landing() {
         <title>Peach Stack — Turn Zero Experience into a Career Stack</title>
         <meta name="description" content="Real internships. Real projects. Real career outcomes. Peach Stack connects motivated students with vetted employers for high-impact work. Based in Atlanta." />
         <link rel="canonical" href="https://peachstack.github.io/" />
+        <meta property="og:title" content="Peach Stack — Turn Zero Experience into a Career Stack" />
+        <meta property="og:description" content="Real internships. Real projects. Real career outcomes. Peach Stack connects motivated students with vetted employers for high-impact work. Based in Atlanta." />
+        <meta property="og:url" content="https://peachstack.github.io/" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://peachstack.github.io/peach-logo.png" />
+        <script type="application/ld+json">{`
+          {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What is Peach Stack?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Peach Stack is an early-career platform based in Atlanta, Georgia that connects motivated college students with vetted employers for real, high-impact project-based internships. We place students in roles across sales, consulting, tech, and marketing."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How do I apply to Peach Stack as a student?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Students can apply at https://peachstack.github.io/apply. Fill out the application form and you will be matched to a cohort and role track based on your interests and skills."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What internship tracks does Peach Stack offer?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Peach Stack offers four internship tracks: Sales & Business Development, Consulting (Business Track), Consulting (Tech Track), and Marketing."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How can employers hire through Peach Stack?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Employers can submit an inquiry at https://peachstack.github.io/for-employers. Peach Stack will match you with a curated cohort of pre-vetted students ready to work on your projects."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is Peach Stack only in Atlanta?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Peach Stack is based in Atlanta, Georgia but accepts students and serves employers nationally across the United States."
+                }
+              }
+            ]
+          }
+        `}</script>
       </Helmet>
       <section className="relative bg-white pb-20 pt-24 lg:pt-32">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -66,6 +119,9 @@ export default function Landing() {
                         className="h-8 w-8 rounded-full border-2 border-white bg-slate-200 object-cover"
                         src={avatar.src}
                         alt={avatar.alt}
+                        width="32"
+                        height="32"
+                        loading="eager"
                       />
                     ) : (
                       <div
@@ -89,11 +145,18 @@ export default function Landing() {
               className="relative"
             >
               <div className="relative z-10 rounded-3xl bg-slate-900 p-2 shadow-2xl">
-                <img
-                  src="/crm-dashboard.png"
-                  alt="Peach Stack CRM dashboard built by interns"
-                  className="rounded-2xl object-cover opacity-90"
-                />
+                <picture>
+                  <source srcSet="/crm-dashboard.webp" type="image/webp" />
+                  <img
+                    src="/crm-dashboard.png"
+                    alt="Peach Stack CRM dashboard built by interns"
+                    className="rounded-2xl object-cover opacity-90"
+                    width="1200"
+                    height="642"
+                    fetchPriority="high"
+                    loading="eager"
+                  />
+                </picture>
                 {/* Floating UI Element */}
                 <div className="absolute -bottom-6 -left-6 rounded-2xl bg-white p-6 shadow-xl md:-left-12">
                   <div className="flex items-center gap-4">
@@ -162,10 +225,13 @@ export default function Landing() {
               className="relative"
             >
               <img
-                src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1200&q=80"
+                src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&q=75"
                 alt="Students collaborating and succeeding"
                 className="rounded-[2.5rem] shadow-2xl object-cover aspect-[4/3]"
                 referrerPolicy="no-referrer"
+                width="800"
+                height="600"
+                loading="lazy"
               />
               <div className="absolute -bottom-8 -right-8 bg-white p-8 rounded-3xl shadow-xl border border-slate-100 max-w-xs hidden sm:block">
                 <div className="flex items-center gap-4 mb-4">
@@ -229,6 +295,9 @@ export default function Landing() {
                   alt="Luxe Threading Studio Website Preview"
                   className="h-full w-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
                   referrerPolicy="no-referrer"
+                  loading="lazy"
+                  width="800"
+                  height="600"
                 />
               </div>
 

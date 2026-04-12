@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
 import { Code2, Database, Shield, Mail, Layers } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 
 const stack = [
   { label: 'Frontend', value: 'React, TypeScript, Vite, Tailwind CSS, deployed on GitHub Pages' },
@@ -13,6 +14,16 @@ const stack = [
 export default function Developers() {
   return (
     <div className="min-h-screen bg-slate-50">
+      <Helmet>
+        <title>Developers — Peach Stack | Technical Stack & Open Source</title>
+        <meta name="description" content="Learn about the technology powering Peach Stack: React, TypeScript, Node.js, Turso, and more. Built by UGA students for the next generation of talent." />
+        <link rel="canonical" href="https://peachstack.github.io/developers" />
+        <meta property="og:title" content="Developers — Peach Stack | Technical Stack & Open Source" />
+        <meta property="og:description" content="Learn about the technology powering Peach Stack: React, TypeScript, Node.js, Turso, and more." />
+        <meta property="og:url" content="https://peachstack.github.io/developers" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://peachstack.github.io/peach-logo.png" />
+      </Helmet>
       <section className="bg-slate-950 py-24 lg:py-32 relative overflow-hidden">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <motion.div

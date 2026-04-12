@@ -166,7 +166,7 @@ export default function Landing() {
               </div>
               <h3 className="text-2xl font-bold text-peach-900 mb-4">For Students</h3>
               <p className="text-lg text-peach-700 leading-relaxed">
-                Access professional training, earn verified badges, and complete paid projects that prove your value to future employers. Build your stack from day one.
+                Access professional training, complete real client projects, and build the experience that proves your value to future employers. Build your stack from day one.
               </p>
             </div>
             <Link to="/for-employers" className="rounded-[2rem] bg-blue-50 p-10 transition-all hover:shadow-lg hover:scale-[1.02] group">
@@ -308,7 +308,7 @@ export default function Landing() {
               },
               {
                 title: 'Dynamic Stack Profile',
-                desc: 'Replace your empty resume with a live showcase of verified skills, badges, and project outcomes.',
+                desc: 'Replace your empty resume with a live showcase of real project outcomes, skills in action, and professional deliverables.',
                 icon: PeachLogo,
                 color: 'bg-transparent',
               },

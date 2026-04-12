@@ -1204,6 +1204,21 @@ export async function buildApp() {
     res.json(result.rows as any[]);
   });
 
+  app.get("/api/workspace/projects", studentApiLimiter, authenticate, async (req: any, res: any) => {
+    const profileResult = await db.execute({ sql: "SELECT intern_role FROM student_profiles WHERE user_id = ?", args: [req.user.id] });
+    const profile = profileResult.rows[0] as any;
+    const internRole = profile?.intern_role || null;
+    let sql = "SELECT * FROM projects WHERE status != 'closed' AND (target_role = 'all'";
+    const args: any[] = [];
+    if (internRole) {
+      sql += " OR target_role = ?";
+      args.push(internRole);
+    }
+    sql += ") ORDER BY created_at DESC";
+    const result = await db.execute({ sql, args });
+    res.json((result.rows as any[]).map((p) => ({ ...p, skills_required: JSON.parse(p.skills_required || "[]") })));
+  });
+
   app.get("/api/workspace/notifications", studentApiLimiter, authenticate, async (req: any, res: any) => {
     const result = await db.execute({ sql: "SELECT * FROM notifications WHERE user_id = ? AND read = 0 ORDER BY created_at DESC", args: [req.user.id] });
     res.json(result.rows as any[]);

@@ -43,7 +43,11 @@ export default function AdminSidebar({ onClose }: Props) {
   }, []);
 
   const handleSignOut = async () => {
-    await fetch(apiUrl('/api/admin/logout'), { method: 'POST', credentials: 'include' });
+    try {
+      await fetch(apiUrl('/api/admin/logout'), { method: 'POST', credentials: 'include' });
+    } catch {
+      // Ignore network errors — redirect regardless
+    }
     window.location.href = '/admin/login';
   };
   return (

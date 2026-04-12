@@ -403,7 +403,7 @@ function Footer() {
             <Link to="/" className="flex items-center gap-2 mb-6">
               <PeachLogo size={32} />
               <span className="font-display text-2xl font-bold tracking-tight text-white">
-                Peach<span className="text-peach-500">stack</span>
+                Peach <span className="text-peach-500">Stack</span>
               </span>
             </Link>
             <p className="max-w-xs text-base leading-relaxed mb-8">

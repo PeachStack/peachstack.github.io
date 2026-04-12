@@ -69,6 +69,15 @@ export default function Apply() {
         <title>Apply — Peach Stack Internships for College Students</title>
         <meta name="description" content="Apply for a Peach Stack internship. Open roles in sales, consulting, technology, and marketing. Build a real portfolio and launch your career from day one." />
         <link rel="canonical" href="https://peachstack.github.io/apply" />
+        <meta property="og:title" content="Apply — Peach Stack Internships for College Students" />
+        <meta property="og:description" content="Apply for a Peach Stack internship. Open roles in sales, consulting, technology, and marketing. Build a real portfolio and launch your career from day one." />
+        <meta property="og:url" content="https://peachstack.github.io/apply" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://peachstack.github.io/peach-logo.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Apply — Peach Stack Internships for College Students" />
+        <meta name="twitter:description" content="Apply for a Peach Stack internship. Open roles in sales, consulting, technology, and marketing. Build a real portfolio and launch your career from day one." />
+        <meta name="twitter:image" content="https://peachstack.github.io/peach-logo.png" />
       </Helmet>
       <section className="py-24 bg-white">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">

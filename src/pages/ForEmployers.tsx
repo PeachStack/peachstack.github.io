@@ -13,6 +13,15 @@ export default function ForEmployers() {
         <title>For Employers — Hire Pre-Vetted Student Talent | Peach Stack</title>
         <meta name="description" content="Hire motivated, pre-vetted college students for real projects through Peach Stack. Access early talent in Atlanta and beyond. Simple onboarding, real results." />
         <link rel="canonical" href="https://peachstack.github.io/for-employers" />
+        <meta property="og:title" content="For Employers — Hire Pre-Vetted Student Talent | Peach Stack" />
+        <meta property="og:description" content="Hire motivated, pre-vetted college students for real projects through Peach Stack. Access early talent in Atlanta and beyond. Simple onboarding, real results." />
+        <meta property="og:url" content="https://peachstack.github.io/for-employers" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://peachstack.github.io/peach-logo.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="For Employers — Hire Pre-Vetted Student Talent | Peach Stack" />
+        <meta name="twitter:description" content="Hire motivated, pre-vetted college students for real projects through Peach Stack. Access early talent in Atlanta and beyond. Simple onboarding, real results." />
+        <meta name="twitter:image" content="https://peachstack.github.io/peach-logo.png" />
       </Helmet>
       {/* Hero Section */}
       <section className="relative bg-slate-950 py-24 lg:py-32 overflow-hidden">

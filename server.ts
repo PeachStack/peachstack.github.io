@@ -561,15 +561,17 @@ export async function buildApp() {
       await db.execute({ sql: "DELETE FROM task_comments WHERE user_id = ?", args: [id] });
       await db.execute({ sql: "DELETE FROM task_activity_log WHERE user_id = ?", args: [id] });
       await db.execute({ sql: "DELETE FROM notifications WHERE user_id = ?", args: [id] });
-      await db.execute({ sql: "DELETE FROM message_group_members WHERE user_id = ?", args: [id] });
+      await db.execute({ sql: "DELETE FROM group_messages WHERE sender_id = ?", args: [id] });
       await db.execute({ sql: "DELETE FROM group_message_reads WHERE user_id = ?", args: [id] });
+      await db.execute({ sql: "DELETE FROM message_group_members WHERE user_id = ?", args: [id] });
       await db.execute({ sql: "DELETE FROM messages WHERE sender_id = ? OR recipient_id = ?", args: [id, id] });
       await db.execute({ sql: "DELETE FROM message_threads WHERE participant_one = ? OR participant_two = ?", args: [id, id] });
       await db.execute({ sql: "DELETE FROM project_assignments WHERE user_id = ?", args: [id] });
       await db.execute({ sql: "DELETE FROM student_profiles WHERE user_id = ?", args: [id] });
-      await db.execute({ sql: "DELETE FROM users WHERE id = ? AND role = 'student'", args: [id] });
+      await db.execute({ sql: "DELETE FROM users WHERE id = ?", args: [id] });
       res.json({ message: "Intern account permanently deleted" });
     } catch (err: any) {
+      console.error('[DELETE INTERN ERROR]', err);
       res.status(500).json({ message: err.message || "Failed to delete intern" });
     }
   });

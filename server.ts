@@ -27,7 +27,7 @@ export async function buildApp() {
     origin: process.env.NODE_ENV === "production"
       ? (process.env.ALLOWED_ORIGINS
           ? process.env.ALLOWED_ORIGINS.split(",")
-          : ["https://peachstackadmin.github.io", "https://sjujala.github.io"])
+          : ["https://peachstack.github.io", "https://peachstackadmin.github.io", "https://sjujala.github.io"])
       : ["http://localhost:5173", "http://localhost:3000"],
     credentials: true,
   }));
@@ -62,7 +62,7 @@ export async function buildApp() {
     const origin = req.headers.origin as string | undefined;
     const allowedOrigins = process.env.ALLOWED_ORIGINS
       ? process.env.ALLOWED_ORIGINS.split(",")
-      : ["http://localhost:3000", "http://localhost:5173", "https://peachstackadmin.github.io", "https://sjujala.github.io"];
+      : ["http://localhost:3000", "http://localhost:5173", "https://peachstack.github.io", "https://peachstackadmin.github.io", "https://sjujala.github.io"];
     // Block requests with no origin header and requests from disallowed origins
     if (!origin || !allowedOrigins.includes(origin)) {
       return res.status(403).json({ message: "Forbidden" });

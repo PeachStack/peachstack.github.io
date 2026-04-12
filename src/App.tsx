@@ -75,18 +75,20 @@ function Navbar() {
         setUserRole(localStorage.getItem('peachstack_user_role'));
       }
     };
-    
+
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible') checkUser();
+    };
+
     checkUser();
-    // Listen for storage changes (for same-tab updates)
     window.addEventListener('storage', checkUser);
-    
-    // Check every second as a simple way to react to same-tab localStorage changes 
-    // since 'storage' event only fires on other tabs
-    const interval = setInterval(checkUser, 1000);
-    
+    window.addEventListener('focus', handleVisibilityOrFocus);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+
     return () => {
       window.removeEventListener('storage', checkUser);
-      clearInterval(interval);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
     };
   }, []);
 

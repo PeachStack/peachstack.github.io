@@ -3,7 +3,6 @@ import type { FormEvent } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Send, Trash2 } from 'lucide-react';
 import { apiUrl } from '../../lib/api';
-import StatusBadge from '../../components/admin/StatusBadge';
 import PriorityBadge from '../../components/admin/PriorityBadge';
 
 interface Comment { id: string; content: string; author_name: string; created_at: string; }
@@ -12,6 +11,7 @@ interface Task {
   id: string; title: string; description: string; status: string; priority: string;
   assignee_name?: string; assigned_to?: string; due_date?: string;
   estimated_hours?: number; actual_hours?: number; tags: string[];
+  admin_feedback?: string; admin_score?: number;
   comments: Comment[]; activity: ActivityItem[];
 }
 
@@ -19,18 +19,61 @@ export default function TaskDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [task, setTask] = useState<Task | null>(null);
+  const [interns, setInterns] = useState<Array<{ id: string; name: string; intern_role?: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
+  const [form, setForm] = useState({ title: '', description: '', status: 'open', priority: 'medium', assigned_to: '', due_date: '', estimated_hours: '', tags: '' });
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState('');
+
+  const [reviewFeedback, setReviewFeedback] = useState('');
+  const [reviewScore, setReviewScore] = useState('');
+  const [reviewing, setReviewing] = useState(false);
+  const [reviewError, setReviewError] = useState('');
+
+  const asDateInput = (value?: string) => {
+    if (!value) return '';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toISOString().slice(0, 10);
+  };
 
   const reload = () => {
+    setLoading(true);
     fetch(apiUrl(`/api/admin/tasks/${id}`), { credentials: 'include' })
-      .then(r => r.json()).then(setTask).finally(() => setLoading(false));
+      .then(r => r.json())
+      .then(data => {
+        setTask(data);
+        setForm({
+          title: data.title || '',
+          description: data.description || '',
+          status: data.status || 'open',
+          priority: data.priority || 'medium',
+          assigned_to: data.assigned_to || '',
+          due_date: asDateInput(data.due_date),
+          estimated_hours: data.estimated_hours?.toString?.() || '',
+          tags: (data.tags || []).join(', '),
+        });
+        setReviewFeedback(data.admin_feedback || '');
+        setReviewScore(data.admin_score?.toString?.() || '');
+      })
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { reload(); }, [id]);
+
+  useEffect(() => {
+    fetch(apiUrl('/api/admin/interns?limit=100'), { credentials: 'include' })
+      .then(r => r.json())
+      .then(data => setInterns(data.data || []))
+      .catch(() => setInterns([]));
+  }, []);
 
   const updateStatus = async (status: string) => {
     await fetch(apiUrl(`/api/admin/tasks/${id}`), {
@@ -55,13 +98,82 @@ export default function TaskDetail() {
     setSubmitting(false);
   };
 
+  const saveTask = async (e: FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setSaveError('');
+    setSaveSuccess('');
+    try {
+      const res = await fetch(apiUrl(`/api/admin/tasks/${id}`), {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: form.title,
+          description: form.description,
+          status: form.status,
+          priority: form.priority,
+          assigned_to: form.assigned_to || null,
+          due_date: form.due_date || null,
+          estimated_hours: form.estimated_hours ? Number(form.estimated_hours) : null,
+          tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setSaveError((data as any).message || 'Failed to save changes.');
+        return;
+      }
+      setSaveSuccess('Task updated.');
+      reload();
+    } catch {
+      setSaveError('Network error. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleReview = async (decision: 'approve' | 'decline') => {
+    setReviewing(true);
+    setReviewError('');
+    try {
+      const score = reviewScore.trim() ? Number(reviewScore) : null;
+      if (decision === 'approve' && score !== null && Number.isNaN(score)) {
+        setReviewError('Score must be a number.');
+        return;
+      }
+      const res = await fetch(apiUrl(`/api/admin/tasks/${id}/review`), {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decision, feedback: reviewFeedback || null, score }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setReviewError((data as any).message || 'Failed to submit review.');
+        return;
+      }
+      reload();
+    } catch {
+      setReviewError('Network error. Please try again.');
+    } finally {
+      setReviewing(false);
+    }
+  };
+
   const handleDelete = async () => {
     setDeleting(true);
+    setDeleteError('');
     try {
       const res = await fetch(apiUrl(`/api/admin/tasks/${id}`), {
         method: 'DELETE', credentials: 'include',
       });
-      if (res.ok) navigate('/admin/tasks');
+      if (res.ok) {
+        navigate('/admin/tasks');
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setDeleteError((data as any).message || 'Failed to delete task.');
+      }
     } finally {
       setDeleting(false);
     }
@@ -79,6 +191,7 @@ export default function TaskDetail() {
             <p className="text-slate-500 text-sm mb-6">
               This will <span className="font-bold text-red-600">permanently delete</span> "{task.title}". This cannot be undone.
             </p>
+            {deleteError && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">{deleteError}</p>}
             <div className="flex gap-3">
               <button onClick={() => setDeleteConfirm(false)} className="flex-1 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
                 Cancel
@@ -101,10 +214,59 @@ export default function TaskDetail() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-            <h3 className="font-semibold text-slate-900 mb-3">Description</h3>
-            <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">{task.description}</p>
-          </div>
+          <form onSubmit={saveTask} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="font-semibold text-slate-900">Edit Task</h3>
+              <button type="submit" disabled={saving} className="px-4 py-2 rounded-xl bg-peach-500 text-white text-sm font-bold hover:bg-peach-600 transition-colors disabled:opacity-50">
+                {saving ? 'Saving...' : 'Save changes'}
+              </button>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">Title</label>
+              <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400" />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">Description</label>
+              <textarea rows={5} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 resize-none" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Status</label>
+                <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400">
+                  {['open', 'in_progress', 'in_review', 'completed', 'blocked'].map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Priority</label>
+                <select value={form.priority} onChange={e => setForm(p => ({ ...p, priority: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400">
+                  {['low', 'medium', 'high', 'urgent'].map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Assignee</label>
+                <select value={form.assigned_to} onChange={e => setForm(p => ({ ...p, assigned_to: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400">
+                  <option value="">Unassigned</option>
+                  {interns.map(i => (
+                    <option key={i.id} value={i.id}>{i.name}{i.intern_role ? `, ${i.intern_role}` : ''}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Due date</label>
+                <input type="date" value={form.due_date} onChange={e => setForm(p => ({ ...p, due_date: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400" />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Estimated hours</label>
+                <input type="number" step="0.5" value={form.estimated_hours} onChange={e => setForm(p => ({ ...p, estimated_hours: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400" />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Tags (comma-separated)</label>
+                <input value={form.tags} onChange={e => setForm(p => ({ ...p, tags: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400" />
+              </div>
+            </div>
+            {saveError && <p className="text-sm text-red-600">{saveError}</p>}
+            {saveSuccess && <p className="text-sm text-emerald-600">{saveSuccess}</p>}
+          </form>
 
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
             <h3 className="font-semibold text-slate-900 mb-4">Comments ({task.comments.length})</h3>
@@ -136,7 +298,7 @@ export default function TaskDetail() {
               <div>
                 <p className="text-slate-400 text-xs mb-1">Status</p>
                 <select value={task.status} onChange={e => updateStatus(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400">
-                  {['open','in_progress','in_review','completed','blocked'].map(s => <option key={s} value={s}>{s.replace('_',' ')}</option>)}
+                  {['open', 'in_progress', 'in_review', 'completed', 'blocked'].map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
                 </select>
               </div>
               <div>
@@ -156,6 +318,19 @@ export default function TaskDetail() {
                   <div className="flex flex-wrap gap-1">{task.tags.map(t => <span key={t} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs">{t}</span>)}</div>
                 </div>
               )}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+            <h3 className="font-semibold text-slate-900 mb-3 text-sm">Review</h3>
+            <div className="space-y-3">
+              <textarea rows={4} value={reviewFeedback} onChange={e => setReviewFeedback(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 resize-none" placeholder="Feedback for intern..." />
+              <input type="number" value={reviewScore} onChange={e => setReviewScore(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400" placeholder="Score (optional for approve)" />
+              {reviewError && <p className="text-xs text-red-600">{reviewError}</p>}
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" disabled={reviewing} onClick={() => handleReview('decline')} className="px-3 py-2 rounded-xl border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-50 transition-colors disabled:opacity-50">Decline</button>
+                <button type="button" disabled={reviewing} onClick={() => handleReview('approve')} className="px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50">Approve</button>
+              </div>
             </div>
           </div>
 

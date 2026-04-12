@@ -739,12 +739,22 @@ export async function buildApp() {
     try {
       const { title, description, skills_required, deadline, compensation, status, target_role } = req.body;
       if (!title || !description) return res.status(400).json({ message: "Title and description required" });
-      const id = crypto.randomUUID();
       await db.execute({
-        sql: "INSERT INTO projects (id, title, description, employer_id, skills_required, deadline, compensation, status, target_role) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        args: [id, title, description, req.user.id, JSON.stringify(skills_required || []), deadline || null, compensation || null, status || "open", target_role || "all"],
+        sql: `INSERT INTO projects (id, title, description, employer_id, skills_required, status, deadline, compensation, target_role)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [
+          crypto.randomUUID(),
+          title,
+          description,
+          req.user.id,
+          JSON.stringify(skills_required || []),
+          status || 'open',
+          deadline || null,
+          compensation || null,
+          target_role || 'all'
+        ]
       });
-      res.status(201).json({ id, message: "Project created" });
+      res.status(201).json({ message: "Project created" });
     } catch (err: any) {
       res.status(500).json({ message: err.message || "Failed to create project" });
     }

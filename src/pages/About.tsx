@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
 import { Linkedin, MapPin, GraduationCap, Briefcase } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 
 const founders = [
   {
@@ -32,7 +33,11 @@ const founders = [
 export default function About() {
   return (
     <div className="bg-white min-h-screen">
-      {/* Hero */}
+      <Helmet>
+        <title>About — Peach Stack | Student Internship Platform in Atlanta</title>
+        <meta name="description" content="Meet the founders of Peach Stack. We're UGA students building the internship platform we wish existed — real projects, real mentorship, real career outcomes." />
+        <link rel="canonical" href="https://peachstack.github.io/about" />
+      </Helmet>
       <section className="bg-slate-950 py-24 lg:py-32 overflow-hidden relative">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <motion.div

@@ -2,12 +2,18 @@ import { motion } from 'motion/react';
 import { Building2, ShieldCheck, BarChart3, Users, Clock, CheckCircle2, ArrowRight, Sparkles, LayoutDashboard, PieChart, TrendingUp, Receipt, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
+import { Helmet } from 'react-helmet-async';
 
 const EMPLOYER_FORM_URL = 'https://docs.google.com/forms/d/1uz55KEIkH3XwnVJxvdQgMMByidmsQRB9dRkVWLJb8p0/viewform';
 
 export default function ForEmployers() {
   return (
     <div className="overflow-hidden bg-white">
+      <Helmet>
+        <title>For Employers — Hire Pre-Vetted Student Talent | Peach Stack</title>
+        <meta name="description" content="Hire motivated, pre-vetted college students for real projects through Peach Stack. Access early talent in Atlanta and beyond. Simple onboarding, real results." />
+        <link rel="canonical" href="https://peachstack.github.io/for-employers" />
+      </Helmet>
       {/* Hero Section */}
       <section className="relative bg-slate-950 py-24 lg:py-32 overflow-hidden">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">

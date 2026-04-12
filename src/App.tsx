@@ -270,6 +270,9 @@ function Navbar() {
         <div className="flex md:hidden">
           <button
             onClick={() => setIsOpen(!isOpen)}
+            aria-label={isOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={isOpen}
+            aria-controls="mobile-nav"
             className="inline-flex items-center justify-center rounded-md p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus:outline-none"
           >
             {isOpen ? <X size={24} /> : <Menu size={24} />}
@@ -281,6 +284,7 @@ function Navbar() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            id="mobile-nav"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -392,7 +396,7 @@ function Navbar() {
 
 function Footer() {
   const EMPLOYER_FORM_URL = 'https://docs.google.com/forms/d/1uz55KEIkH3XwnVJxvdQgMMByidmsQRB9dRkVWLJb8p0/viewform';
-  const STUDENT_FORM_URL = 'https://forms.gle/8nDwdqpbnXuYnhj76';
+  const STUDENT_FORM_URL = 'https://forms.gle/8nDwdqpbnXuYnhj76?utm_source=peachstack&utm_medium=website&utm_campaign=footer';
 
   return (
     <footer className="bg-slate-950 text-slate-400 py-16 border-t border-slate-900">
@@ -492,7 +496,7 @@ function MainApp() {
     <div className="flex min-h-screen flex-col font-sans">
       <ScrollToTop />
       <Navbar />
-      <main className="flex-grow">
+      <main id="main-content" className="flex-grow">
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/student" element={<StudentDashboard />} />

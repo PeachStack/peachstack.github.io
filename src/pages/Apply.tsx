@@ -1,7 +1,9 @@
 import { motion } from 'motion/react';
 import { ArrowRight, Sparkles, TrendingUp, Briefcase, Code2, Megaphone, Users, HelpCircle, ExternalLink } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 
 const GOOGLE_FORM_URL = 'https://forms.gle/8nDwdqpbnXuYnhj76';
+const APPLY_CTA_URL = `${GOOGLE_FORM_URL}?utm_source=peachstack&utm_medium=website&utm_campaign=apply_page`;
 
 const roles = [
   {
@@ -63,7 +65,11 @@ const roles = [
 export default function Apply() {
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero */}
+      <Helmet>
+        <title>Apply — Peach Stack Internships for College Students</title>
+        <meta name="description" content="Apply for a Peach Stack internship. Open roles in sales, consulting, technology, and marketing. Build a real portfolio and launch your career from day one." />
+        <link rel="canonical" href="https://peachstack.github.io/apply" />
+      </Helmet>
       <section className="py-24 bg-white">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
@@ -84,7 +90,7 @@ export default function Apply() {
               We review every application personally. You'll hear from us within 1–2 weeks.
             </p>
             <a
-              href={GOOGLE_FORM_URL}
+              href={APPLY_CTA_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-peach-500 px-10 py-4 text-lg font-bold text-white shadow-xl shadow-peach-200 transition-all hover:bg-peach-600 hover:shadow-peach-300 active:scale-95"
@@ -130,7 +136,7 @@ export default function Apply() {
           {/* CTA */}
           <div className="text-center">
             <a
-              href={GOOGLE_FORM_URL}
+              href={APPLY_CTA_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-10 py-4 text-lg font-bold text-white shadow-xl transition-all hover:bg-peach-500 hover:shadow-peach-200 active:scale-95"

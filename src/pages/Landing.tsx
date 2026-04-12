@@ -3,13 +3,20 @@ import { ChevronRight, Rocket, Target, ShieldCheck, ArrowRight, GraduationCap, B
 import PeachLogo from '../components/ui/PeachLogo';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
+import { Helmet } from 'react-helmet-async';
 
 const GOOGLE_FORM_URL = 'https://forms.gle/8nDwdqpbnXuYnhj76';
+const HERO_CTA_URL = `${GOOGLE_FORM_URL}?utm_source=peachstack&utm_medium=website&utm_campaign=hero_cta`;
+const BOTTOM_CTA_URL = `${GOOGLE_FORM_URL}?utm_source=peachstack&utm_medium=website&utm_campaign=bottom_cta`;
 
 export default function Landing() {
   return (
     <div className="overflow-hidden">
-      {/* Hero Section */}
+      <Helmet>
+        <title>Peach Stack — Turn Zero Experience into a Career Stack</title>
+        <meta name="description" content="Real internships. Real projects. Real career outcomes. Peach Stack connects motivated students with vetted employers for high-impact work. Based in Atlanta." />
+        <link rel="canonical" href="https://peachstack.github.io/" />
+      </Helmet>
       <section className="relative bg-white pb-20 pt-24 lg:pt-32">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
@@ -30,7 +37,7 @@ export default function Landing() {
               </p>
                 <div className="mt-10 flex flex-col gap-4 sm:flex-row">
                 <a
-                  href={GOOGLE_FORM_URL}
+                  href={HERO_CTA_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 rounded-2xl bg-peach-500 px-8 py-4 text-lg font-bold text-white shadow-xl shadow-peach-200 transition-all hover:bg-peach-600 hover:shadow-peach-300 active:scale-95"
@@ -47,14 +54,28 @@ export default function Landing() {
               </div>
               <div className="mt-8 flex items-center gap-4 text-sm text-slate-500">
                 <div className="flex -space-x-2">
-                  {[1, 2, 3, 4].map((i) => (
-                    <img
-                      key={i}
-                      className="h-8 w-8 rounded-full border-2 border-white bg-slate-200"
-                      src={`https://picsum.photos/seed/user${i}/100/100`}
-                      alt="User"
-                      referrerPolicy="no-referrer"
-                    />
+                  {[
+                    { src: '/Arnav_PFP.jpg', alt: 'Arnav' },
+                    { src: '/Srikar_PFP.jpg', alt: 'Srikar' },
+                    { src: null, initials: 'PS', bg: 'bg-peach-400' },
+                    { src: null, initials: 'PS', bg: 'bg-blue-400' },
+                  ].map((avatar, i) => (
+                    avatar.src ? (
+                      <img
+                        key={i}
+                        className="h-8 w-8 rounded-full border-2 border-white bg-slate-200 object-cover"
+                        src={avatar.src}
+                        alt={avatar.alt}
+                      />
+                    ) : (
+                      <div
+                        key={i}
+                        className={`flex h-8 w-8 items-center justify-center rounded-full border-2 border-white text-[10px] font-bold text-white ${avatar.bg}`}
+                        aria-hidden="true"
+                      >
+                        {avatar.initials}
+                      </div>
+                    )
                   ))}
                 </div>
                 <p>Join the next generation of leaders</p>
@@ -69,10 +90,9 @@ export default function Landing() {
             >
               <div className="relative z-10 rounded-3xl bg-slate-900 p-2 shadow-2xl">
                 <img
-                  src="https://picsum.photos/seed/office/1200/800"
-                  alt="Professional Environment"
+                  src="/crm-dashboard.png"
+                  alt="Peach Stack CRM dashboard built by interns"
                   className="rounded-2xl object-cover opacity-90"
-                  referrerPolicy="no-referrer"
                 />
                 {/* Floating UI Element */}
                 <div className="absolute -bottom-6 -left-6 rounded-2xl bg-white p-6 shadow-xl md:-left-12">
@@ -348,7 +368,7 @@ export default function Landing() {
               </p>
               <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
                 <a
-                  href={GOOGLE_FORM_URL}
+                  href={BOTTOM_CTA_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full rounded-2xl bg-peach-500 px-8 py-4 text-lg font-bold text-white transition-all hover:bg-peach-600 sm:w-auto"

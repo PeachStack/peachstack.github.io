@@ -1,12 +1,19 @@
 import { motion } from 'motion/react';
 import { Users, ArrowRight, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 
 const GOOGLE_FORM_URL = 'https://forms.gle/8nDwdqpbnXuYnhj76';
+const COMMUNITY_CTA_URL = `${GOOGLE_FORM_URL}?utm_source=peachstack&utm_medium=website&utm_campaign=community_page`;
 
 export default function Community() {
   return (
     <div className="min-h-screen bg-slate-50">
+      <Helmet>
+        <title>Community — Peach Stack | Student Network & Resources</title>
+        <meta name="description" content="Join the Peach Stack community. Connect with fellow interns, access resources, and grow your professional network as a college student." />
+        <link rel="canonical" href="https://peachstack.github.io/community" />
+      </Helmet>
       <section className="bg-slate-950 py-24 lg:py-32 relative overflow-hidden">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <motion.div
@@ -55,7 +62,7 @@ export default function Community() {
                 <ArrowRight size={18} />
               </Link>
               <a
-                href={GOOGLE_FORM_URL}
+                href={COMMUNITY_CTA_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 rounded-2xl border-2 border-slate-200 px-8 py-4 text-base font-bold text-slate-900 transition-all hover:bg-slate-50 active:scale-95"

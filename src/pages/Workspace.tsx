@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { CheckCircle2, Clock, Calendar, ListTodo, MessageSquare, Save } from 'lucide-react';
+import { CheckCircle2, Clock, Calendar, ListTodo, MessageSquare, Save, X, Tag, User } from 'lucide-react';
 import { useState, useEffect, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
@@ -8,11 +8,14 @@ import { apiUrl } from '../lib/api';
 interface ApiTask {
   id: string;
   title: string;
+  description: string;
   status: string;
   priority: string;
   due_date?: string;
   creator_name?: string;
+  estimated_hours?: number;
   tags: string[];
+  points?: number;
 }
 
 interface CalendarEvent {
@@ -204,6 +207,119 @@ function ProfileSetupModal({ onComplete }: { onComplete: (name: string) => void 
   );
 }
 
+function TaskDetailModal({ task, onClose, onStatusChange }: { task: ApiTask; onClose: () => void; onStatusChange: (id: string, status: string) => void }) {
+  const getPriorityStyle = (priority: string) => {
+    if (priority === 'urgent' || priority === 'high') return 'bg-red-50 text-red-600';
+    if (priority === 'medium') return 'bg-amber-50 text-amber-600';
+    return 'bg-blue-50 text-blue-600';
+  };
+
+  const isSubmitted = task.status === 'in_review' || task.status === 'completed';
+  const isCompleted = task.status === 'completed';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-y-auto max-h-[90vh]"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between p-6 pb-4 border-b border-slate-100">
+          <div className="flex-1 pr-4">
+            <h2 className="font-display text-xl font-bold text-slate-900">{task.title}</h2>
+            {task.creator_name && (
+              <p className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
+                <User size={12} />
+                Assigned by {task.creator_name}
+              </p>
+            )}
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors shrink-0">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-5">
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className={cn('rounded-md px-2.5 py-1 text-xs font-bold uppercase tracking-wider', getPriorityStyle(task.priority))}>
+              {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+            </span>
+            <span className={cn(
+              'rounded-md px-2.5 py-1 text-xs font-bold capitalize',
+              task.status === 'completed' ? 'bg-green-50 text-green-700' :
+              task.status === 'in_review' ? 'bg-blue-50 text-blue-700' :
+              task.status === 'in_progress' ? 'bg-amber-50 text-amber-700' :
+              task.status === 'blocked' ? 'bg-red-50 text-red-700' :
+              'bg-slate-100 text-slate-600'
+            )}>
+              {task.status.replace('_', ' ')}
+            </span>
+            {task.due_date && (
+              <span className="flex items-center gap-1 text-xs text-slate-500">
+                <Clock size={12} />
+                Due {new Date(task.due_date).toLocaleDateString()}
+              </span>
+            )}
+            {task.estimated_hours && (
+              <span className="text-xs text-slate-500">{task.estimated_hours}h estimated</span>
+            )}
+          </div>
+
+          {task.description && (
+            <div>
+              <h4 className="text-sm font-semibold text-slate-700 mb-2">Description</h4>
+              <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{task.description}</p>
+            </div>
+          )}
+
+          {task.tags.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5"><Tag size={12} />Tags</h4>
+              <div className="flex flex-wrap gap-1.5">
+                {task.tags.map(tag => (
+                  <span key={tag} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md text-xs">{tag}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!isCompleted && (
+            <div className="border-t border-slate-100 pt-4">
+              <p className="text-xs text-slate-500 mb-3">
+                {isSubmitted
+                  ? 'You\'ve submitted this task for review. Waiting for admin approval.'
+                  : 'Mark this task as done when you\'re finished.'}
+              </p>
+              <button
+                onClick={() => {
+                  const newStatus = isSubmitted ? 'in_progress' : 'in_review';
+                  onStatusChange(task.id, newStatus);
+                  onClose();
+                }}
+                className={cn(
+                  'w-full py-3 rounded-xl text-sm font-bold transition-colors',
+                  isSubmitted
+                    ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : 'bg-peach-500 hover:bg-peach-600 text-white'
+                )}
+              >
+                {isSubmitted ? 'Take Back (Mark In Progress)' : 'Mark as Done'}
+              </button>
+            </div>
+          )}
+          {isCompleted && (
+            <div className="border-t border-slate-100 pt-4 flex items-center gap-2 text-green-600">
+              <CheckCircle2 size={16} />
+              <span className="text-sm font-semibold">Task completed — great work!</span>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 export default function Workspace() {
   const [tasks, setTasks] = useState<ApiTask[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
@@ -212,6 +328,7 @@ export default function Workspace() {
   const [loadingCalendar, setLoadingCalendar] = useState(true);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<ApiTask | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -308,6 +425,13 @@ export default function Workspace() {
           }}
         />
       )}
+      {selectedTask && (
+        <TaskDetailModal
+          task={selectedTask}
+          onClose={() => setSelectedTask(null)}
+          onStatusChange={updateTaskStatus}
+        />
+      )}
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Welcome Header */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -356,6 +480,7 @@ export default function Workspace() {
               ) : (
                 <div className="space-y-3">
                   {tasks.map((task) => {
+                    const isSubmitted = task.status === 'in_review' || task.status === 'completed';
                     const isCompleted = task.status === 'completed';
                     return (
                       <motion.div
@@ -367,23 +492,30 @@ export default function Workspace() {
                         )}
                       >
                         <button
-                          onClick={() => updateTaskStatus(task.id, isCompleted ? 'open' : 'in_review')}
+                          disabled={isCompleted}
+                          onClick={() => updateTaskStatus(task.id, isSubmitted ? 'in_progress' : 'in_review')}
                           className={cn(
                             "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-2 transition-all",
                             isCompleted
-                              ? "bg-green-500 border-green-500 text-white"
+                              ? "bg-green-500 border-green-500 text-white cursor-not-allowed"
+                              : isSubmitted
+                              ? "bg-peach-500 border-peach-500 text-white hover:bg-peach-600"
                               : "border-slate-200 hover:border-peach-500"
                           )}
+                          title={isCompleted ? 'Completed by admin' : isSubmitted ? 'Click to take back' : 'Mark as done'}
                         >
-                          {isCompleted && <CheckCircle2 size={14} />}
+                          {isSubmitted && <CheckCircle2 size={14} />}
                         </button>
-                        <div className="flex-grow">
-                          <h4 className={cn("text-sm font-bold text-slate-900", isCompleted && "line-through")}>
+                        <button
+                          className="flex-grow text-left"
+                          onClick={() => setSelectedTask(task)}
+                        >
+                          <h4 className={cn("text-sm font-bold text-slate-900 hover:text-peach-600 transition-colors", isCompleted && "line-through")}>
                             {task.title}
                           </h4>
                           {task.creator_name && <p className="text-xs text-slate-500">From: {task.creator_name}</p>}
-                        </div>
-                        <div className="flex items-center gap-4">
+                        </button>
+                        <div className="flex items-center gap-4 shrink-0">
                           {task.due_date && (
                             <div className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-slate-400">
                               <Clock size={14} />

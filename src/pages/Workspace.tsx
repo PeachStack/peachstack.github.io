@@ -29,6 +29,7 @@ interface CalendarEvent {
   description?: string;
   event_date: string;
   event_time?: string;
+  type?: 'event' | 'task_due';
 }
 
 function ProfileSetupModal({ onComplete }: { onComplete: (name: string) => void }) {
@@ -808,9 +809,12 @@ export default function Workspace() {
                         {event.event_time ? formatEventTime(event.event_time) : new Date(event.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </div>
                       <div className="flex-grow pb-4 border-l-2 border-slate-50 pl-4 relative">
-                        <div className="absolute -left-[5px] top-1.5 h-2 w-2 rounded-full bg-peach-500" />
+                        <div className={`absolute -left-[5px] top-1.5 h-2 w-2 rounded-full ${event.type === 'task_due' ? 'bg-amber-400' : 'bg-peach-500'}`} />
                         <p className="text-sm font-bold text-slate-900">{event.title}</p>
-                        {event.description && <p className="text-xs text-slate-500">{event.description}</p>}
+                        {event.type === 'task_due' && (
+                          <span className="inline-block text-[10px] font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded mt-0.5">Due</span>
+                        )}
+                        {event.description && event.type !== 'task_due' && <p className="text-xs text-slate-500">{event.description}</p>}
                       </div>
                     </div>
                   ))}

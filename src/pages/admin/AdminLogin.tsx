@@ -42,7 +42,7 @@ export default function AdminLogin() {
           <div className="h-10 w-10 rounded-xl bg-peach-500 flex items-center justify-center">
             <ShieldCheck size={22} className="text-white" />
           </div>
-          <span className="font-display text-xl font-bold text-white">Peachstack Admin</span>
+          <span className="font-display text-xl font-bold text-white">Peach Stack Admin</span>
         </div>
         <div>
           <h1 className="font-display text-4xl font-bold text-white leading-tight">
@@ -52,14 +52,14 @@ export default function AdminLogin() {
           </h1>
           <p className="mt-4 text-slate-400 text-lg">Interns, tasks, cohorts, and communications, all in one secure dashboard.</p>
         </div>
-        <p className="text-slate-600 text-sm">© 2026 Peachstack · Atlanta, Georgia</p>
+        <p className="text-slate-600 text-sm">© 2026 Peach Stack · Atlanta, Georgia</p>
       </div>
       {/* Right panel */}
       <div className="flex-1 flex items-center justify-center bg-white p-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-2 mb-8">
             <div className="h-8 w-8 rounded-lg bg-peach-500 flex items-center justify-center"><ShieldCheck size={18} className="text-white" /></div>
-            <span className="font-display font-bold text-slate-900">Peachstack Admin</span>
+            <span className="font-display font-bold text-slate-900">Peach Stack Admin</span>
           </div>
           <h2 className="font-display text-3xl font-bold text-slate-900 mb-2">Welcome back</h2>
           <p className="text-slate-500 mb-8">Sign in to your admin account</p>

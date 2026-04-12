@@ -28,7 +28,7 @@ export default function Developers() {
               Built for <span className="text-peach-500">Scale</span>
             </h1>
             <p className="text-xl text-slate-400 leading-relaxed max-w-3xl mx-auto">
-              Peachstack is a full-stack platform built on a modern, production-grade architecture.
+              Peach Stack is a full-stack platform built on a modern, production-grade architecture.
               We ship real products, for real clients, on a real tech stack.
             </p>
           </motion.div>
@@ -96,7 +96,7 @@ export default function Developers() {
               <h2 className="font-display text-2xl font-bold text-slate-900">Work with Us</h2>
             </div>
             <p className="text-slate-600 text-lg leading-relaxed mb-6">
-              Interested in integrating with Peachstack or building on our platform?
+              Interested in integrating with Peach Stack or building on our platform?
             </p>
             <a
               href="mailto:peachstackadmin@gmail.com"

@@ -448,7 +448,7 @@ function Footer() {
             <Link to="/cookies" className="hover:text-white transition-colors">Cookie Settings</Link>
           </div>
           <p className="text-xs text-slate-500">
-            &copy; {new Date().getFullYear()} Peachstack. All rights reserved.
+            &copy; {new Date().getFullYear()} Peach Stack. All rights reserved.
           </p>
         </div>
       </div>

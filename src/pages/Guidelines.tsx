@@ -10,7 +10,7 @@ const sections = [
     title: 'Eligibility',
     content: (
       <p className="text-slate-600 leading-relaxed">
-        You must be at least 18 years old to use Peachstack. By using the platform, you represent
+        You must be at least 18 years old to use Peach Stack. By using the platform, you represent
         and warrant that you are 18 or older. If we determine that you are under 18, your account
         will be terminated immediately and any agreements will be considered void.
       </p>
@@ -33,8 +33,8 @@ const sections = [
     title: 'Platform Use',
     content: (
       <p className="text-slate-600 leading-relaxed">
-        You agree to use Peachstack only for its intended purpose: participating in the internship
-        program, completing assigned tasks, and communicating with the Peachstack team. You may not
+        You agree to use Peach Stack only for its intended purpose: participating in the internship
+        program, completing assigned tasks, and communicating with the Peach Stack team. You may not
         use the platform to harass others, submit false information, attempt to gain unauthorized
         access to other accounts, or engage in any illegal activity.
       </p>
@@ -45,9 +45,9 @@ const sections = [
     title: 'Internship Program',
     content: (
       <p className="text-slate-600 leading-relaxed">
-        Participation in the Peachstack internship program does not constitute employment. Interns
+        Participation in the Peach Stack internship program does not constitute employment. Interns
         are unpaid program participants unless otherwise agreed to in a separate written agreement.
-        Peachstack reserves the right to remove any intern from the program at any time.
+        Peach Stack reserves the right to remove any intern from the program at any time.
       </p>
     ),
   },
@@ -56,8 +56,8 @@ const sections = [
     title: 'Intellectual Property',
     content: (
       <p className="text-slate-600 leading-relaxed">
-        Any work product, code, designs, or deliverables you create as part of the Peachstack
-        program that are submitted through the platform are owned by Peachstack unless a separate
+        Any work product, code, designs, or deliverables you create as part of the Peach Stack
+        program that are submitted through the platform are owned by Peach Stack unless a separate
         written agreement states otherwise.
       </p>
     ),
@@ -77,7 +77,7 @@ const sections = [
     title: 'Limitation of Liability',
     content: (
       <p className="text-slate-600 leading-relaxed">
-        To the fullest extent permitted by law, Peachstack shall not be liable for any indirect,
+        To the fullest extent permitted by law, Peach Stack shall not be liable for any indirect,
         incidental, or consequential damages arising from your use of the platform.
       </p>
     ),
@@ -127,7 +127,7 @@ export default function Guidelines() {
           </div>
 
           <p className="text-slate-600 leading-relaxed mb-12">
-            These Terms of Service govern your use of the Peachstack platform. By creating an
+            These Terms of Service govern your use of the Peach Stack platform. By creating an
             account or submitting an application, you agree to these terms.
           </p>
 

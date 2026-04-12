@@ -19,7 +19,7 @@ export default function Community() {
               <span>Community</span>
             </div>
             <h1 className="font-display text-5xl font-extrabold leading-tight tracking-tight text-white sm:text-6xl mb-8">
-              The Peachstack <span className="text-peach-500">Community</span>
+              The Peach Stack <span className="text-peach-500">Community</span>
             </h1>
             <p className="text-xl text-slate-400 leading-relaxed max-w-2xl mx-auto">
               A space for current and alumni interns to connect, share work, and grow together.
@@ -43,7 +43,7 @@ export default function Community() {
               <Users size={40} />
             </div>
             <p className="text-lg text-slate-600 leading-relaxed mb-10">
-              If you're a current Peachstack intern, your workspace gives you access to team
+              If you're a current Peach Stack intern, your workspace gives you access to team
               communications, task boards, and cohort updates. Log in to get started.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

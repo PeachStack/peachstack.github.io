@@ -42,7 +42,7 @@ export default function AdminSidebar({ onClose }: Props) {
     <aside className="flex h-full w-64 flex-col bg-slate-900 text-white">
       <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800">
         <div>
-          <span className="font-display text-lg font-bold text-white">Peachstack</span>
+          <span className="font-display text-lg font-bold text-white">Peach Stack</span>
           <span className="ml-1.5 text-xs font-bold text-peach-400 uppercase tracking-widest">Admin</span>
         </div>
         {onClose && <button onClick={onClose} className="text-slate-400 hover:text-white lg:hidden"><X size={20} /></button>}

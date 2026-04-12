@@ -47,7 +47,7 @@ const roles = [
     lightColor: 'bg-pink-50',
     textColor: 'text-pink-700',
     borderColor: 'border-pink-100',
-    desc: "You'll own how Peachstack shows up online. Content, social, paid ads, campaign strategy. This is for people who understand how attention works and know how to turn it into action.",
+    desc: "You'll own how Peach Stack shows up online. Content, social, paid ads, campaign strategy. This is for people who understand how attention works and know how to turn it into action.",
   },
   {
     icon: HelpCircle,
@@ -72,7 +72,7 @@ export default function Apply() {
           >
             <div className="inline-flex items-center gap-2 rounded-full bg-peach-50 px-4 py-1.5 text-sm font-bold text-peach-600 mb-6">
               <Sparkles size={16} />
-              <span>Peachstack Intern Application: Summer 2026</span>
+              <span>Peach Stack Intern Application: Summer 2026</span>
             </div>
             <h1 className="font-display text-5xl font-extrabold tracking-tight text-slate-900 sm:text-6xl mb-6">
               Build something <span className="text-peach-500 italic">real</span> with us.

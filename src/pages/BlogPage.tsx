@@ -16,7 +16,7 @@ export default function Blog() {
               <span>Blog</span>
             </div>
             <h1 className="font-display text-5xl font-extrabold leading-tight tracking-tight text-white sm:text-6xl mb-8">
-              Peachstack <span className="text-peach-500">Blog</span>
+              Peach Stack <span className="text-peach-500">Blog</span>
             </h1>
             <p className="text-xl text-slate-400 leading-relaxed max-w-2xl mx-auto">
               Insights on early career development, Atlanta's business landscape, and what it

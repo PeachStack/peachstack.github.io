@@ -10,7 +10,7 @@ const sections = [
     title: 'How We Vet Employers',
     content: (
       <p className="text-slate-600 leading-relaxed">
-        Every company or individual that partners with Peachstack goes through a manual review before
+        Every company or individual that partners with Peach Stack goes through a manual review before
         any student is matched with them. We verify business legitimacy, review the scope of proposed
         projects, and confirm that compensation terms are fair and clearly defined. We do not
         allow unpaid "exposure" projects. If an employer cannot meet our standards, we do not
@@ -24,14 +24,14 @@ const sections = [
     content: (
       <div className="space-y-4 text-slate-600 leading-relaxed">
         <p>
-          Peachstack is committed to ensuring every student works in a professional, respectful
+          Peach Stack is committed to ensuring every student works in a professional, respectful
           environment. All employers and students agree to our Code of Conduct before participating.
           Key protections include:
         </p>
         <ul className="list-disc pl-6 space-y-2">
           <li>All project deliverables and compensation terms must be documented in writing before work begins.</li>
           <li>Students may not be asked to perform tasks outside the agreed project scope without renegotiated terms.</li>
-          <li>Employers may not contact students outside of Peachstack-facilitated channels without consent.</li>
+          <li>Employers may not contact students outside of Peach Stack-facilitated channels without consent.</li>
           <li>Student work product is protected — employers may not claim ownership of work without proper written agreement.</li>
         </ul>
       </div>
@@ -60,7 +60,7 @@ const sections = [
     content: (
       <p className="text-slate-600 leading-relaxed">
         If a dispute arises between a student and an employer — regarding payment, project scope,
-        feedback, or conduct — either party may escalate to Peachstack by emailing{' '}
+        feedback, or conduct — either party may escalate to Peach Stack by emailing{' '}
         <a href="mailto:peachstackadmin@gmail.com" className="text-peach-600 font-bold hover:underline">
           peachstackadmin@gmail.com
         </a>
@@ -78,7 +78,7 @@ const sections = [
         Student personal information — including contact details, resume, and school records — is
         never shared with employers without the student's explicit consent. We use industry-standard
         encryption for data in transit and at rest. Access to student records is restricted to
-        Peachstack staff only. For a full breakdown of how we handle your data, see our{' '}
+        Peach Stack staff only. For a full breakdown of how we handle your data, see our{' '}
         <Link to="/privacy" className="text-peach-600 font-bold hover:underline">
           Privacy Policy
         </Link>.
@@ -124,7 +124,7 @@ export default function Safety() {
           </div>
 
           <p className="text-slate-600 leading-relaxed mb-12">
-            Peachstack connects students with employers for real project work. That responsibility
+            Peach Stack connects students with employers for real project work. That responsibility
             comes with a commitment to safety for everyone involved. This page explains how we vet
             partners, protect students from exploitation, handle disputes, and respond to
             emergencies.
@@ -144,7 +144,7 @@ export default function Safety() {
             <section className="bg-slate-50 p-8 rounded-3xl border border-slate-100">
               <h3 className="text-lg font-bold text-slate-900 mb-2">Questions or Concerns?</h3>
               <p className="text-slate-600 text-sm">
-                If you have any questions about safety at Peachstack, contact us at{' '}
+                If you have any questions about safety at Peach Stack, contact us at{' '}
                 <a
                   href="mailto:peachstackadmin@gmail.com"
                   className="text-peach-600 font-bold hover:underline"

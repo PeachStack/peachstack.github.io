@@ -72,7 +72,7 @@ export default function ForEmployers() {
                 Powerful CRM Dashboard for <span className="text-peach-500">Business Management</span>
               </h2>
               <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-                Our integrated CRM provides a comprehensive overview of your business operations. From tracking client growth to monitoring revenue trends, Peachstack gives you the analytics you need to make data driven decisions.
+                Our integrated CRM provides a comprehensive overview of your business operations. From tracking client growth to monitoring revenue trends, Peach Stack gives you the analytics you need to make data driven decisions.
               </p>
               
               <div className="space-y-6">
@@ -115,7 +115,7 @@ export default function ForEmployers() {
               <div className="relative z-10 rounded-3xl bg-white p-2 shadow-2xl border border-slate-100 overflow-hidden">
                 <img
                   src={`${import.meta.env.BASE_URL}crm-dashboard.png`}
-                  alt="Peachstack CRM Dashboard"
+                  alt="Peach Stack CRM Dashboard"
                   className="rounded-2xl w-full h-auto shadow-inner"
                 />
               </div>
@@ -197,7 +197,7 @@ export default function ForEmployers() {
       <section className="py-24 bg-slate-50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="font-display text-4xl font-bold text-slate-900">Why Employers Choose Peachstack</h2>
+            <h2 className="font-display text-4xl font-bold text-slate-900">Why Employers Choose Peach Stack</h2>
             <p className="mt-4 text-lg text-slate-600">The most efficient way to manage projects and talent.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

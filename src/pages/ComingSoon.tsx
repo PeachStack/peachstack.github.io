@@ -17,7 +17,7 @@ export default function ComingSoon() {
         </div>
         <h2 className="font-display text-4xl font-bold text-slate-900 mb-6">Coming Soon!</h2>
         <p className="text-lg text-slate-600 leading-relaxed mb-10">
-          We're working hard to bring you this feature. Peachstack is constantly evolving to better serve our community of ambitious students and partner firms.
+          We're working hard to bring you this feature. Peach Stack is constantly evolving to better serve our community of ambitious students and partner firms.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <button

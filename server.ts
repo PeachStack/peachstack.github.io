@@ -410,7 +410,7 @@ export async function buildApp() {
       await db.execute({ sql: "INSERT INTO student_profiles (user_id, intern_role) VALUES (?, ?)", args: [id, internRole || null] });
       await db.execute({
         sql: "INSERT INTO notifications (id, user_id, message, type) VALUES (?, ?, ?, 'account_created')",
-        args: [crypto.randomUUID(), id, `Welcome to Peachstack, ${name}! Your account has been created.`],
+        args: [crypto.randomUUID(), id, `Welcome to Peach Stack, ${name}! Your account has been created.`],
       });
       // Auto-add intern to matching role-based groups
       const groupsResult = await db.execute({
@@ -1178,7 +1178,7 @@ async function startServer() {
     // Frontend is served by GitHub Pages — not from this server.
     // This server is API-only in production.
     app.get("/", (req, res) => {
-      res.json({ status: "Peachstack API is running" });
+      res.json({ status: "Peach Stack API is running" });
     });
   }
 

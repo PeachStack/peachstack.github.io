@@ -69,7 +69,7 @@ function ProfileSetupModal({ onComplete }: { onComplete: (name: string) => void 
           <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-peach-100 text-peach-600 mb-4">
             <span className="text-2xl">👋</span>
           </div>
-          <h2 className="font-display text-2xl font-bold text-slate-900">Welcome to Peachstack!</h2>
+          <h2 className="font-display text-2xl font-bold text-slate-900">Welcome to Peach Stack!</h2>
           <p className="text-slate-500 text-sm mt-2">Let's set up your profile before you get started.</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -53,7 +53,7 @@ export default function Login() {
         <div className="text-center">
           <div className="inline-flex items-center gap-2 rounded-full bg-peach-50 px-4 py-1.5 text-sm font-bold text-peach-600 mb-6">
             <Sparkles size={16} />
-            <span>Welcome Back to Peachstack</span>
+            <span>Welcome Back to Peach Stack</span>
           </div>
           <h2 className="font-display text-4xl font-extrabold tracking-tight text-slate-900">
             Sign In

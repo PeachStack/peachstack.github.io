@@ -34,6 +34,18 @@ export async function buildApp() {
   app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
 
+  const getCookieOptions = (req: any) => {
+    const forwardedProto = (req.headers["x-forwarded-proto"] as string | undefined)?.split(",")[0]?.trim();
+    const isHttps = req.secure || forwardedProto === "https" || process.env.NODE_ENV === "production";
+    const sameSite: "none" | "lax" = isHttps ? "none" : "lax";
+    return {
+      httpOnly: true,
+      secure: isHttps,
+      sameSite,
+      maxAge: 24 * 60 * 60 * 1000,
+    };
+  };
+
   // ─── Rate limiters ───────────────────────────────────────────────────────────
   const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false });
   const publicLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false });
@@ -159,12 +171,13 @@ export async function buildApp() {
     await db.execute({ sql: "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?", args: [user.id] });
     const tokenVersion = user.token_version || 0;
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role, name: user.name, tokenVersion }, JWT_SECRET, { expiresIn: "24h" });
-    res.cookie("token", token, { httpOnly: true, secure: true, sameSite: "none", maxAge: 24 * 60 * 60 * 1000 });
+    res.cookie("token", token, getCookieOptions(req));
     res.json({ user: { id: user.id, email: user.email, role: user.role, name: user.name } });
   });
 
   app.post("/api/logout", (req, res) => {
-    res.clearCookie("token", { httpOnly: true, secure: true, sameSite: "none" });
+    const cookieOptions = getCookieOptions(req);
+    res.clearCookie("token", { httpOnly: true, secure: cookieOptions.secure, sameSite: cookieOptions.sameSite });
     res.json({ message: "Logged out successfully" });
   });
 
@@ -280,12 +293,13 @@ export async function buildApp() {
       JWT_SECRET,
       { expiresIn: "24h" }
     );
-    res.cookie("token", token, { httpOnly: true, secure: true, sameSite: "none", maxAge: 24 * 60 * 60 * 1000 });
+    res.cookie("token", token, getCookieOptions(req));
     res.json({ user: { id: user.id, email: user.email, role: user.role, name: user.name, isSuperadmin } });
   });
 
   app.post("/api/admin/logout", adminApiLimiter, requireAdmin, (req, res) => {
-    res.clearCookie("token", { httpOnly: true, secure: true, sameSite: "none" });
+    const cookieOptions = getCookieOptions(req);
+    res.clearCookie("token", { httpOnly: true, secure: cookieOptions.secure, sameSite: cookieOptions.sameSite });
     res.json({ message: "Logged out" });
   });
 
@@ -600,20 +614,21 @@ export async function buildApp() {
         description = COALESCE(?, description),
         status = COALESCE(?, status),
         priority = COALESCE(?, priority),
-        assigned_to = COALESCE(?, assigned_to),
-        due_date = COALESCE(?, due_date),
-        estimated_hours = COALESCE(?, estimated_hours),
-        actual_hours = COALESCE(?, actual_hours),
-        tags = COALESCE(?, tags),
+        assigned_to = CASE WHEN ? THEN ? ELSE assigned_to END,
+        due_date = CASE WHEN ? THEN ? ELSE due_date END,
+        estimated_hours = CASE WHEN ? THEN ? ELSE estimated_hours END,
+        actual_hours = CASE WHEN ? THEN ? ELSE actual_hours END,
+        tags = CASE WHEN ? THEN ? ELSE tags END,
         updated_at = CURRENT_TIMESTAMP,
         completed_at = CASE WHEN ? = 'completed' THEN CURRENT_TIMESTAMP ELSE completed_at END
         WHERE id = ?`,
       args: [
         title || null, description || null, status || null, priority || null,
-        assigned_to !== undefined ? assigned_to : null,
-        due_date !== undefined ? due_date : null,
-        estimated_hours || null, actual_hours || null,
-        tags ? JSON.stringify(tags) : null,
+        assigned_to !== undefined ? 1 : 0, assigned_to !== undefined ? assigned_to : null,
+        due_date !== undefined ? 1 : 0, due_date !== undefined ? due_date : null,
+        estimated_hours !== undefined ? 1 : 0, estimated_hours !== undefined ? estimated_hours : null,
+        actual_hours !== undefined ? 1 : 0, actual_hours !== undefined ? actual_hours : null,
+        tags !== undefined ? 1 : 0, tags !== undefined ? JSON.stringify(tags) : null,
         status || null, req.params.id,
       ],
     });
@@ -621,26 +636,41 @@ export async function buildApp() {
   });
 
   app.patch("/api/admin/tasks/:id/review", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
-    const { feedback, score } = req.body;
+    const { feedback, score, decision } = req.body;
+    if (decision && !["approve", "decline"].includes(decision)) {
+      return res.status(400).json({ message: "Invalid decision" });
+    }
     const taskResult = await db.execute({ sql: "SELECT * FROM tasks WHERE id = ?", args: [req.params.id] });
     const task = taskResult.rows[0] as any;
     if (!task) return res.status(404).json({ message: "Not found" });
+    const approved = decision !== "decline";
     await db.execute({
-      sql: "UPDATE tasks SET admin_feedback = ?, admin_score = ?, status = 'completed', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-      args: [feedback || null, score || null, req.params.id],
+      sql: "UPDATE tasks SET admin_feedback = ?, admin_score = ?, status = ?, completed_at = CASE WHEN ? THEN CURRENT_TIMESTAMP ELSE NULL END, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      args: [feedback || null, approved ? score || null : null, approved ? "completed" : "in_progress", approved ? 1 : 0, req.params.id],
     });
-    if (task.assigned_to && score) {
+    await db.execute({
+      sql: "INSERT INTO task_activity_log (id, task_id, user_id, action, new_value) VALUES (?, ?, ?, ?, ?)",
+      args: [crypto.randomUUID(), req.params.id, req.user.id, approved ? "approved" : "declined", feedback || null],
+    });
+    if (task.assigned_to && approved && score) {
       await db.execute({ sql: "UPDATE student_profiles SET points_total = points_total + ? WHERE user_id = ?", args: [score, task.assigned_to] });
       await db.execute({
         sql: "INSERT INTO notifications (id, user_id, message, type) VALUES (?, ?, ?, 'task_reviewed')",
         args: [crypto.randomUUID(), task.assigned_to, `Your task "${task.title}" has been reviewed. Score: ${score}`],
       });
+    } else if (task.assigned_to && !approved) {
+      await db.execute({
+        sql: "INSERT INTO notifications (id, user_id, message, type) VALUES (?, ?, ?, 'task_reviewed')",
+        args: [crypto.randomUUID(), task.assigned_to, `Your task "${task.title}" was declined and needs updates.`],
+      });
     }
-    res.json({ message: "Task reviewed" });
+    res.json({ message: approved ? "Task approved" : "Task declined" });
   });
 
   app.delete("/api/admin/tasks/:id", adminApiLimiter, requireAdmin, async (req, res) => {
     try {
+      await db.execute({ sql: "DELETE FROM task_comments WHERE task_id = ?", args: [req.params.id] });
+      await db.execute({ sql: "DELETE FROM task_activity_log WHERE task_id = ?", args: [req.params.id] });
       await db.execute({ sql: "DELETE FROM tasks WHERE id = ?", args: [req.params.id] });
       res.json({ message: "Deleted" });
     } catch (err: any) {

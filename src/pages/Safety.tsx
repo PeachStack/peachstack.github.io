@@ -1,76 +1,102 @@
 import { motion } from 'motion/react';
-import { ShieldCheck, Eye, Lock, Users, Trash2, FileText } from 'lucide-react';
+import { ShieldCheck, UserCheck, AlertTriangle, MessageSquare, Lock, Briefcase, Phone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const LAST_UPDATED = 'April 11, 2026';
 
 const sections = [
   {
-    icon: Eye,
-    title: 'Information We Collect',
+    icon: UserCheck,
+    title: 'How We Vet Employers',
     content: (
       <p className="text-slate-600 leading-relaxed">
-        When you apply to or use Peachstack, we may collect your name, email address, phone number,
-        resume, school information, and any other information you voluntarily provide through our
-        application form or account registration. When you use the platform, we also collect basic
-        usage data such as login timestamps and activity on your account.
+        Every company or individual that partners with Peachstack goes through a manual review before
+        any student is matched with them. We verify business legitimacy, review the scope of proposed
+        projects, and confirm that compensation terms are fair and clearly defined. We do not
+        allow unpaid "exposure" projects. If an employer cannot meet our standards, we do not
+        list them on the platform.
+      </p>
+    ),
+  },
+  {
+    icon: Briefcase,
+    title: 'Student Protections & Code of Conduct',
+    content: (
+      <div className="space-y-4 text-slate-600 leading-relaxed">
+        <p>
+          Peachstack is committed to ensuring every student works in a professional, respectful
+          environment. All employers and students agree to our Code of Conduct before participating.
+          Key protections include:
+        </p>
+        <ul className="list-disc pl-6 space-y-2">
+          <li>All project deliverables and compensation terms must be documented in writing before work begins.</li>
+          <li>Students may not be asked to perform tasks outside the agreed project scope without renegotiated terms.</li>
+          <li>Employers may not contact students outside of Peachstack-facilitated channels without consent.</li>
+          <li>Student work product is protected — employers may not claim ownership of work without proper written agreement.</li>
+        </ul>
+      </div>
+    ),
+  },
+  {
+    icon: AlertTriangle,
+    title: 'Harassment Reporting',
+    content: (
+      <p className="text-slate-600 leading-relaxed">
+        Zero tolerance for harassment. If a student experiences harassment, inappropriate communication,
+        or any form of discriminatory treatment from an employer, they should report it immediately
+        to{' '}
+        <a href="mailto:peachstackadmin@gmail.com" className="text-peach-600 font-bold hover:underline">
+          peachstackadmin@gmail.com
+        </a>{' '}
+        with the subject line "Safety Report." Reports are reviewed within 24 hours. The employer
+        will be suspended from the platform pending investigation, and the student will be
+        reassigned or compensated as appropriate.
+      </p>
+    ),
+  },
+  {
+    icon: MessageSquare,
+    title: 'Dispute Resolution',
+    content: (
+      <p className="text-slate-600 leading-relaxed">
+        If a dispute arises between a student and an employer — regarding payment, project scope,
+        feedback, or conduct — either party may escalate to Peachstack by emailing{' '}
+        <a href="mailto:peachstackadmin@gmail.com" className="text-peach-600 font-bold hover:underline">
+          peachstackadmin@gmail.com
+        </a>
+        {' '}with a summary of the issue. Our team will act as a neutral mediator and aim to resolve
+        disputes within 5 business days. In cases of confirmed employer misconduct, students will
+        not be penalized and will receive their agreed compensation.
       </p>
     ),
   },
   {
     icon: Lock,
-    title: 'How We Use Your Information',
+    title: 'Data Security',
     content: (
       <p className="text-slate-600 leading-relaxed">
-        We use your information to review your application, create and manage your account,
-        communicate with you about your role and tasks, and send platform-related notifications.
-        We do not sell your personal information to anyone, ever.
+        Student personal information — including contact details, resume, and school records — is
+        never shared with employers without the student's explicit consent. We use industry-standard
+        encryption for data in transit and at rest. Access to student records is restricted to
+        Peachstack staff only. For a full breakdown of how we handle your data, see our{' '}
+        <Link to="/privacy" className="text-peach-600 font-bold hover:underline">
+          Privacy Policy
+        </Link>.
       </p>
     ),
   },
   {
-    icon: Users,
-    title: 'Third Parties',
+    icon: Phone,
+    title: 'Emergency Contact',
     content: (
       <p className="text-slate-600 leading-relaxed">
-        We use the following third-party services that may process your data: Resend (email
-        delivery), Google Forms and Google Drive (application submissions), and GitHub Pages or
-        Railway (hosting). Each of these has their own privacy policies governing how they handle
-        data.
-      </p>
-    ),
-  },
-  {
-    icon: Trash2,
-    title: 'Data Retention',
-    content: (
-      <p className="text-slate-600 leading-relaxed">
-        We retain your information for as long as your account is active or as needed to operate the
-        platform. If you request deletion, we will remove your personal data within 30 days.
-      </p>
-    ),
-  },
-  {
-    icon: FileText,
-    title: 'Your Rights',
-    content: (
-      <p className="text-slate-600 leading-relaxed">
-        You have the right to request access to, correction of, or deletion of your personal data
-        at any time. To make a request, email us at{' '}
+        For urgent safety concerns — including situations where a student feels unsafe or is being
+        pressured — contact us immediately at{' '}
         <a href="mailto:peachstackadmin@gmail.com" className="text-peach-600 font-bold hover:underline">
           peachstackadmin@gmail.com
-        </a>.
-      </p>
-    ),
-  },
-  {
-    icon: ShieldCheck,
-    title: 'Children and Age Requirements',
-    content: (
-      <p className="text-slate-600 leading-relaxed">
-        Peachstack is intended for users who are 18 years of age or older. We do not knowingly
-        collect information from anyone under 18. If we become aware that a user is under 18, we
-        will terminate their account immediately.
+        </a>{' '}
+        with the subject line "URGENT." If you are in immediate danger, please contact local
+        emergency services (911) first.
       </p>
     ),
   },
@@ -90,7 +116,7 @@ export default function Safety() {
               <ShieldCheck size={32} />
             </div>
             <div>
-              <h1 className="font-display text-4xl font-bold text-slate-900">Privacy Policy</h1>
+              <h1 className="font-display text-4xl font-bold text-slate-900">Safety</h1>
               <p className="text-slate-500 font-medium mt-1 uppercase tracking-widest text-xs">
                 Last Updated: {LAST_UPDATED}
               </p>
@@ -98,9 +124,10 @@ export default function Safety() {
           </div>
 
           <p className="text-slate-600 leading-relaxed mb-12">
-            Peachstack ("we," "us," or "our") is operated out of Atlanta, Georgia. This Privacy
-            Policy explains what information we collect, how we use it, and your rights regarding
-            that information.
+            Peachstack connects students with employers for real project work. That responsibility
+            comes with a commitment to safety for everyone involved. This page explains how we vet
+            partners, protect students from exploitation, handle disputes, and respond to
+            emergencies.
           </p>
 
           <div className="space-y-12">
@@ -115,9 +142,9 @@ export default function Safety() {
             ))}
 
             <section className="bg-slate-50 p-8 rounded-3xl border border-slate-100">
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Contact</h3>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">Questions or Concerns?</h3>
               <p className="text-slate-600 text-sm">
-                If you have any questions about this Privacy Policy, contact us at{' '}
+                If you have any questions about safety at Peachstack, contact us at{' '}
                 <a
                   href="mailto:peachstackadmin@gmail.com"
                   className="text-peach-600 font-bold hover:underline"
@@ -132,6 +159,10 @@ export default function Safety() {
                 Also read our{' '}
                 <Link to="/guidelines" className="text-peach-600 font-bold hover:underline">
                   Terms of Service
+                </Link>{' '}
+                and{' '}
+                <Link to="/privacy" className="text-peach-600 font-bold hover:underline">
+                  Privacy Policy
                 </Link>.
               </p>
             </section>

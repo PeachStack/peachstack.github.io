@@ -246,7 +246,7 @@ export default function ForEmployers() {
                 Ready to scale your business?
               </h2>
               <p className="mx-auto mt-6 max-w-xl text-lg text-slate-300">
-                Join hundreds of companies leveraging early talent to drive growth and innovation.
+                We're launching our first cohort Summer 2026. Early partners get priority access and direct support from our founding team.
               </p>
               <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
                 <a

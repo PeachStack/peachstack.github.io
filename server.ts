@@ -215,7 +215,7 @@ export async function buildApp() {
     res.json({ message: "Logged out successfully" });
   });
 
-  app.get("/api/me", authenticate, (req: any, res: any) => {
+  app.get("/api/me", studentApiLimiter, authenticate, (req: any, res: any) => {
     res.json({ user: req.user });
   });
 

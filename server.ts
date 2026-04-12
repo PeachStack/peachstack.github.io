@@ -259,44 +259,6 @@ export async function buildApp() {
   });
 
   // ─── Projects ─────────────────────────────────────────────────────────────────
-  app.get("/api/projects", studentApiLimiter, authenticate, async (req, res) => {
-    const result = await db.execute({ sql: "SELECT * FROM projects WHERE status = 'open'", args: [] });
-    res.json((result.rows as any[]).map((p) => {
-      let skills: string[] = [];
-      try { skills = JSON.parse(p.skills_required || "[]"); } catch { skills = []; }
-      return { ...p, skills_required: skills };
-    }));
-  });
-
-  app.post("/api/projects", studentApiLimiter, authenticate, async (req: any, res: any) => {
-    if (req.user.role !== "employer" && req.user.role !== "admin") {
-      return res.status(403).json({ message: "Forbidden" });
-    }
-    const { title, description, skills_required, deadline, compensation } = req.body;
-    const id = crypto.randomUUID();
-    await db.execute({
-      sql: "INSERT INTO projects (id, title, description, employer_id, skills_required, deadline, compensation) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      args: [id, title, description, req.user.id, JSON.stringify(skills_required), deadline, compensation],
-    });
-    res.status(201).json({ id, message: "Project created" });
-  });
-
-  // ─── Applications ─────────────────────────────────────────────────────────────
-  app.post("/api/applications", studentApiLimiter, authenticate, async (req: any, res: any) => {
-    if (req.user.role !== "student") return res.status(403).json({ message: "Only students can apply" });
-    const { project_id, cover_letter } = req.body;
-    const id = crypto.randomUUID();
-    try {
-      await db.execute({
-        sql: "INSERT INTO applications (id, student_id, project_id, cover_letter) VALUES (?, ?, ?, ?)",
-        args: [id, req.user.id, project_id, cover_letter],
-      });
-      res.status(201).json({ id, message: "Application submitted" });
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
   // ─── Contact Form ─────────────────────────────────────────────────────────────
   app.post("/api/contact", async (req, res) => {
     const { name, email, message } = req.body;
@@ -591,12 +553,12 @@ export async function buildApp() {
   // ─── Task Management ──────────────────────────────────────────────────────────
   app.get("/api/admin/tasks", adminApiLimiter, requireAdmin, async (req, res) => {
     const { status, assignee, priority, page = "1", limit = "50" } = req.query as any;
-    let sql = "SELECT t.*, u.name as assignee_name, c.name as creator_name FROM tasks t LEFT JOIN users u ON t.assigned_to = u.id LEFT JOIN users c ON t.created_by = c.id WHERE 1=1";
+    let sql = "SELECT t.*, u.name as assignee_name, c.name as creator_name, pl.name as project_lead_name FROM tasks t LEFT JOIN users u ON t.assigned_to = u.id LEFT JOIN users c ON t.created_by = c.id LEFT JOIN users pl ON t.project_lead_id = pl.id WHERE 1=1";
     const args: any[] = [];
     if (status) { sql += " AND t.status = ?"; args.push(status); }
     if (assignee) { sql += " AND t.assigned_to = ?"; args.push(assignee); }
     if (priority) { sql += " AND t.priority = ?"; args.push(priority); }
-    const countResult = await db.execute({ sql: sql.replace("SELECT t.*, u.name as assignee_name, c.name as creator_name", "SELECT COUNT(*) as count"), args });
+    const countResult = await db.execute({ sql: sql.replace("SELECT t.*, u.name as assignee_name, c.name as creator_name, pl.name as project_lead_name", "SELECT COUNT(*) as count"), args });
     const total = (countResult.rows[0] as any)?.count || 0;
     const offset = (parseInt(page) - 1) * parseInt(limit);
     sql += " ORDER BY t.created_at DESC LIMIT ? OFFSET ?";
@@ -606,13 +568,13 @@ export async function buildApp() {
   });
 
   app.post("/api/admin/tasks", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
-    const { title, description, assigned_to, assigned_role, project_id, project_label, priority, due_date, estimated_hours, tags, points, task_type } = req.body;
+    const { title, description, assigned_to, assigned_role, project_id, project_label, project_lead_id, priority, due_date, estimated_hours, tags, points, task_type } = req.body;
     if (!title || !description) return res.status(400).json({ message: "Title and description required" });
     const id = crypto.randomUUID();
     const createdBy = req.user.id;
     await db.execute({
-      sql: "INSERT INTO tasks (id, title, description, assigned_to, assigned_role, project_id, project_label, created_by, priority, due_date, estimated_hours, tags, points, task_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      args: [id, title, description, assigned_to || null, assigned_role || null, project_id || null, project_label || null, createdBy, priority || "medium", due_date || null, estimated_hours || null, JSON.stringify(tags || []), points || 10, task_type || "regular"],
+      sql: "INSERT INTO tasks (id, title, description, assigned_to, assigned_role, project_id, project_label, project_lead_id, created_by, priority, due_date, estimated_hours, tags, points, task_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      args: [id, title, description, assigned_to || null, assigned_role || null, project_id || null, project_label || null, project_lead_id || null, createdBy, priority || "medium", due_date || null, estimated_hours || null, JSON.stringify(tags || []), points || 10, task_type || "regular"],
     });
     await db.execute({
       sql: "INSERT INTO task_activity_log (id, task_id, user_id, action, new_value) VALUES (?, ?, ?, 'created', ?)",
@@ -629,14 +591,14 @@ export async function buildApp() {
 
   app.get("/api/admin/tasks/:id", adminApiLimiter, requireAdmin, async (req, res) => {
     const taskResult = await db.execute({
-      sql: "SELECT t.*, u.name as assignee_name FROM tasks t LEFT JOIN users u ON t.assigned_to = u.id WHERE t.id = ?",
+      sql: "SELECT t.*, u.name as assignee_name, pl.name as project_lead_name FROM tasks t LEFT JOIN users u ON t.assigned_to = u.id LEFT JOIN users pl ON t.project_lead_id = pl.id WHERE t.id = ?",
       args: [req.params.id],
     });
     const task = taskResult.rows[0] as any;
     if (!task) return res.status(404).json({ message: "Not found" });
     task.tags = JSON.parse(task.tags || "[]");
     const commentsResult = await db.execute({
-      sql: "SELECT tc.*, u.name as author_name FROM task_comments tc JOIN users u ON tc.user_id = u.id WHERE tc.task_id = ? ORDER BY tc.created_at ASC",
+      sql: "SELECT tc.*, u.name as author_name, u.role as author_role FROM task_comments tc JOIN users u ON tc.user_id = u.id WHERE tc.task_id = ? ORDER BY tc.created_at ASC",
       args: [req.params.id],
     });
     const activityResult = await db.execute({
@@ -650,7 +612,7 @@ export async function buildApp() {
     const taskResult = await db.execute({ sql: "SELECT * FROM tasks WHERE id = ?", args: [req.params.id] });
     const task = taskResult.rows[0] as any;
     if (!task) return res.status(404).json({ message: "Not found" });
-    const { title, description, status, priority, assigned_to, due_date, estimated_hours, actual_hours, tags, project_label } = req.body;
+    const { title, description, status, priority, assigned_to, due_date, estimated_hours, actual_hours, tags, project_label, project_lead_id } = req.body;
     const userId = req.user.id;
     if (status && status !== task.status) {
       await db.execute({
@@ -676,6 +638,7 @@ export async function buildApp() {
         actual_hours = CASE WHEN ? THEN ? ELSE actual_hours END,
         tags = CASE WHEN ? THEN ? ELSE tags END,
         project_label = CASE WHEN ? THEN ? ELSE project_label END,
+        project_lead_id = CASE WHEN ? THEN ? ELSE project_lead_id END,
         updated_at = CURRENT_TIMESTAMP,
         completed_at = CASE WHEN ? = 'completed' THEN CURRENT_TIMESTAMP ELSE completed_at END
         WHERE id = ?`,
@@ -687,6 +650,7 @@ export async function buildApp() {
         actual_hours !== undefined ? 1 : 0, actual_hours !== undefined ? actual_hours : null,
         tags !== undefined ? 1 : 0, tags !== undefined ? JSON.stringify(tags) : null,
         project_label !== undefined ? 1 : 0, project_label !== undefined ? (project_label || null) : null,
+        project_lead_id !== undefined ? 1 : 0, project_lead_id !== undefined ? (project_lead_id || null) : null,
         status || null, req.params.id,
       ],
     });
@@ -776,97 +740,6 @@ export async function buildApp() {
       internActivity: internActivityResult.rows as any[],
       overdueTasks: (overdueResult.rows[0] as any)?.count || 0,
     });
-  });
-
-  // ─── Admin Projects ────────────────────────────────────────────────────────────
-  app.get("/api/admin/projects", adminApiLimiter, requireAdmin, async (req, res) => {
-    try {
-      const result = await db.execute({ sql: "SELECT * FROM projects ORDER BY created_at DESC", args: [] });
-      res.json((result.rows as any[]).map((p) => {
-        let skills: string[] = [];
-        try { skills = JSON.parse(p.skills_required || "[]"); } catch { skills = []; }
-        return { ...p, skills_required: skills };
-      }));
-    } catch (err: any) {
-      res.status(500).json({ message: err.message || "Failed to load projects" });
-    }
-  });
-
-  app.post("/api/admin/projects", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
-    try {
-      const { title, description, skills_required, deadline, compensation, status, target_role } = req.body;
-      if (!title || !description) return res.status(400).json({ message: "Title and description required" });
-      await db.execute({
-        sql: `INSERT INTO projects (id, title, description, employer_id, skills_required, status, deadline, compensation, target_role)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [
-          crypto.randomUUID(),
-          title,
-          description,
-          req.user.id,
-          JSON.stringify(skills_required || []),
-          status || 'open',
-          deadline || null,
-          compensation || null,
-          target_role || 'all'
-        ]
-      });
-      res.status(201).json({ message: "Project created" });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message || "Failed to create project" });
-    }
-  });
-
-  app.patch("/api/admin/projects/:id", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
-    try {
-      const { title, description, status, skills_required, deadline, compensation, target_role } = req.body;
-      if (!title || !description) return res.status(400).json({ message: "Title and description required" });
-      await db.execute({
-        sql: `UPDATE projects SET
-          title = ?,
-          description = ?,
-          status = ?,
-          skills_required = ?,
-          deadline = ?,
-          compensation = ?,
-          target_role = ?
-          WHERE id = ?`,
-        args: [title, description, status || 'open', JSON.stringify(skills_required || []), deadline || null, compensation || null, target_role || 'all', req.params.id],
-      });
-      res.json({ message: "Updated" });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message || "Failed to update project" });
-    }
-  });
-
-  app.delete("/api/admin/projects/:id", adminApiLimiter, requireAdmin, async (req, res) => {
-    try {
-      await db.execute({ sql: "DELETE FROM project_assignments WHERE project_id = ?", args: [req.params.id] });
-      await db.execute({ sql: "DELETE FROM projects WHERE id = ?", args: [req.params.id] });
-      res.json({ message: "Deleted" });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message || "Failed to delete project" });
-    }
-  });
-
-  // GET /api/admin/projects/:id/assignments — list user assignments for a project
-  app.get("/api/admin/projects/:id/assignments", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
-    const result = await db.execute({
-      sql: "SELECT pa.*, u.name, u.email FROM project_assignments pa JOIN users u ON pa.user_id = u.id WHERE pa.project_id = ? ORDER BY pa.created_at DESC",
-      args: [req.params.id],
-    });
-    res.json(result.rows as any[]);
-  });
-
-  // PATCH /api/admin/projects/:id/assignments/:userId — admin updates an assignment status
-  app.patch("/api/admin/projects/:id/assignments/:userId", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
-    const { status } = req.body;
-    if (!['in_progress', 'in_review', 'completed'].includes(status)) return res.status(400).json({ message: "Invalid status" });
-    await db.execute({
-      sql: "UPDATE project_assignments SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE project_id = ? AND user_id = ?",
-      args: [status, req.params.id, req.params.userId],
-    });
-    res.json({ message: "Updated" });
   });
 
   // ─── Messaging Routes ─────────────────────────────────────────────────────────
@@ -1262,7 +1135,13 @@ export async function buildApp() {
     const taskResult = await db.execute({ sql: "SELECT * FROM tasks WHERE id = ?", args: [req.params.id] });
     const task = taskResult.rows[0] as any;
     if (!task) return res.status(404).json({ message: "Not found" });
-    if (req.user.role === "student" && task.assigned_to !== req.user.id) return res.status(403).json({ message: "Not authorized" });
+    if (req.user.role === "student") {
+      const profileResult = await db.execute({ sql: "SELECT intern_role FROM student_profiles WHERE user_id = ?", args: [req.user.id] });
+      const internRole = (profileResult.rows[0] as any)?.intern_role || null;
+      const isAssigned = task.assigned_to === req.user.id;
+      const isRoleMatch = internRole && task.assigned_role === internRole;
+      if (!isAssigned && !isRoleMatch) return res.status(403).json({ message: "Not authorized" });
+    }
     const { content } = req.body;
     const id = crypto.randomUUID();
     await db.execute({ sql: "INSERT INTO task_comments (id, task_id, user_id, content) VALUES (?, ?, ?, ?)", args: [id, req.params.id, req.user.id, content] });
@@ -1270,23 +1149,47 @@ export async function buildApp() {
   });
 
   // ─── Workspace Routes ──────────────────────────────────────────────────────────
+  app.get("/api/workspace/tasks/:id", studentApiLimiter, authenticate, async (req: any, res: any) => {
+    const taskResult = await db.execute({
+      sql: "SELECT t.*, u.name as creator_name FROM tasks t LEFT JOIN users u ON t.created_by = u.id WHERE t.id = ?",
+      args: [req.params.id],
+    });
+    const task = taskResult.rows[0] as any;
+    if (!task) return res.status(404).json({ message: "Not found" });
+
+    const profileResult = await db.execute({ sql: "SELECT intern_role FROM student_profiles WHERE user_id = ?", args: [req.user.id] });
+    const internRole = (profileResult.rows[0] as any)?.intern_role || null;
+    const isAssigned = task.assigned_to === req.user.id;
+    const isRoleMatch = internRole && task.assigned_role === internRole;
+    if (!isAssigned && !isRoleMatch) return res.status(403).json({ message: "Not authorized" });
+
+    task.tags = JSON.parse(task.tags || "[]");
+
+    const commentsResult = await db.execute({
+      sql: "SELECT tc.*, u.name as author_name, u.role as author_role FROM task_comments tc JOIN users u ON tc.user_id = u.id WHERE tc.task_id = ? ORDER BY tc.created_at ASC",
+      args: [req.params.id],
+    });
+
+    res.json({ ...task, comments: commentsResult.rows as any[] });
+  });
+
   app.get("/api/workspace/tasks", studentApiLimiter, authenticate, async (req: any, res: any) => {
     const profileResult = await db.execute({ sql: "SELECT intern_role FROM student_profiles WHERE user_id = ?", args: [req.user.id] });
     const profile = profileResult.rows[0] as any;
     const internRole = profile?.intern_role || null;
     // Hide submission and review fields for role-based tasks not assigned to this specific user
-    let sql = `SELECT t.id, t.title, t.description, t.status, t.priority, t.task_type, t.assigned_role, t.due_date, t.estimated_hours, t.tags, t.points, t.project_label, t.created_at, t.updated_at,
+    let sql = `SELECT t.id, t.title, t.description, t.status, t.priority, t.task_type, t.assigned_to, t.assigned_role, t.due_date, t.estimated_hours, t.tags, t.points, t.project_label, t.project_lead_id, t.created_at, t.updated_at,
       CASE WHEN t.assigned_to = ? THEN t.submission_url ELSE NULL END as submission_url,
       CASE WHEN t.assigned_to = ? THEN t.submission_note ELSE NULL END as submission_note,
       CASE WHEN t.assigned_to = ? THEN t.admin_feedback ELSE NULL END as admin_feedback,
       CASE WHEN t.assigned_to = ? THEN t.admin_score ELSE NULL END as admin_score,
-      u.name as creator_name FROM tasks t LEFT JOIN users u ON t.created_by = u.id WHERE (t.assigned_to = ?`;
+      u.name as creator_name, pl.name as project_lead_name FROM tasks t LEFT JOIN users u ON t.created_by = u.id LEFT JOIN users pl ON t.project_lead_id = pl.id WHERE (t.assigned_to = ?`;
     const args: any[] = [req.user.id, req.user.id, req.user.id, req.user.id, req.user.id];
     if (internRole) {
       sql += " OR t.assigned_role = ?";
       args.push(internRole);
     }
-    sql += ") ORDER BY t.created_at DESC";
+    sql += ") ORDER BY CASE WHEN t.due_date IS NULL THEN 1 ELSE 0 END ASC, t.due_date ASC, t.created_at DESC";
     const result = await db.execute({ sql, args });
     res.json((result.rows as any[]).map((t) => ({ ...t, tags: JSON.parse(t.tags || "[]") })));
   });
@@ -1335,55 +1238,6 @@ export async function buildApp() {
     sql += " ORDER BY event_date ASC";
     const result = await db.execute({ sql, args });
     res.json(result.rows as any[]);
-  });
-
-  app.get("/api/workspace/projects", studentApiLimiter, authenticate, async (req: any, res: any) => {
-    const profileResult = await db.execute({ sql: "SELECT intern_role FROM student_profiles WHERE user_id = ?", args: [req.user.id] });
-    const profile = profileResult.rows[0] as any;
-    const internRole = profile?.intern_role || null;
-    let sql = `SELECT p.*, pa.status as my_status, pa.id as assignment_id
-               FROM projects p
-               LEFT JOIN project_assignments pa ON pa.project_id = p.id AND pa.user_id = ?
-               WHERE p.status != 'closed' AND (p.target_role = 'all' OR p.target_role IS NULL`;
-    const args: any[] = [req.user.id];
-    if (internRole) {
-      sql += " OR p.target_role = ?";
-      args.push(internRole);
-    }
-    sql += ") ORDER BY p.created_at DESC";
-    const result = await db.execute({ sql, args });
-    res.json((result.rows as any[]).map((p) => {
-      let skills: string[] = [];
-      try { skills = JSON.parse(p.skills_required || "[]"); } catch { skills = []; }
-      return { ...p, skills_required: skills };
-    }));
-  });
-
-  // POST /api/workspace/projects/:id/join — join a project (creates an assignment)
-  app.post("/api/workspace/projects/:id/join", studentApiLimiter, authenticate, async (req: any, res: any) => {
-    const projectResult = await db.execute({ sql: "SELECT id FROM projects WHERE id = ?", args: [req.params.id] });
-    if (!projectResult.rows.length) return res.status(404).json({ message: "Project not found" });
-    try {
-      await db.execute({
-        sql: "INSERT OR IGNORE INTO project_assignments (id, project_id, user_id) VALUES (?, ?, ?)",
-        args: [crypto.randomUUID(), req.params.id, req.user.id],
-      });
-      res.json({ message: "Joined project" });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message || "Failed to join project" });
-    }
-  });
-
-  // PATCH /api/workspace/projects/:id/status — update own project assignment status
-  app.patch("/api/workspace/projects/:id/status", studentApiLimiter, authenticate, async (req: any, res: any) => {
-    const { status } = req.body;
-    if (!['in_progress', 'in_review'].includes(status)) return res.status(400).json({ message: "Invalid status" });
-    const updated = await db.execute({
-      sql: "UPDATE project_assignments SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE project_id = ? AND user_id = ?",
-      args: [status, req.params.id, req.user.id],
-    });
-    if (!updated.rowsAffected) return res.status(404).json({ message: "Assignment not found — join the project first" });
-    res.json({ message: "Status updated" });
   });
 
   app.get("/api/workspace/notifications", studentApiLimiter, authenticate, async (req: any, res: any) => {

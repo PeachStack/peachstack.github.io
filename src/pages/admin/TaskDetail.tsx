@@ -5,13 +5,13 @@ import { ArrowLeft, Send, Trash2 } from 'lucide-react';
 import { apiUrl } from '../../lib/api';
 import PriorityBadge from '../../components/admin/PriorityBadge';
 
-interface Comment { id: string; content: string; author_name: string; created_at: string; }
+interface Comment { id: string; content: string; author_name: string; author_role?: string; created_at: string; }
 interface ActivityItem { action: string; actor_name: string; old_value?: string; new_value?: string; created_at: string; }
 interface Task {
   id: string; title: string; description: string; status: string; priority: string;
   assignee_name?: string; assigned_to?: string; due_date?: string;
   estimated_hours?: number; actual_hours?: number; tags: string[];
-  project_label?: string;
+  project_label?: string; project_lead_id?: string; project_lead_name?: string;
   admin_feedback?: string; admin_score?: number;
   comments: Comment[]; activity: ActivityItem[];
 }
@@ -28,7 +28,7 @@ export default function TaskDetail() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
 
-  const [form, setForm] = useState({ title: '', description: '', status: 'open', priority: 'medium', assigned_to: '', due_date: '', estimated_hours: '', tags: '', project_label: '' });
+  const [form, setForm] = useState({ title: '', description: '', status: 'open', priority: 'medium', assigned_to: '', due_date: '', estimated_hours: '', tags: '', project_label: '', project_lead_id: '' });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState('');
@@ -62,6 +62,7 @@ export default function TaskDetail() {
           estimated_hours: data.estimated_hours?.toString?.() || '',
           tags: (data.tags || []).join(', '),
           project_label: data.project_label || '',
+          project_lead_id: data.project_lead_id || '',
         });
         setReviewFeedback(data.admin_feedback || '');
         setReviewScore(data.admin_score?.toString?.() || '');
@@ -131,6 +132,7 @@ export default function TaskDetail() {
           estimated_hours: form.estimated_hours ? Number(form.estimated_hours) : null,
           tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
           project_label: form.project_label || null,
+          project_lead_id: form.project_lead_id || null,
         }),
       });
       if (!res.ok) {
@@ -247,6 +249,17 @@ export default function TaskDetail() {
               <label className="block text-xs text-slate-500 mb-1">Project Label</label>
               <input value={form.project_label} onChange={e => setForm(p => ({ ...p, project_label: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400" placeholder="e.g. Client Website Build" />
             </div>
+            {form.project_label && (
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Project Lead</label>
+                <select value={form.project_lead_id} onChange={e => setForm(p => ({ ...p, project_lead_id: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400">
+                  <option value="">No lead</option>
+                  {interns.map(i => (
+                    <option key={i.id} value={i.id}>{i.name}{i.intern_role ? `, ${i.intern_role}` : ''}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <label className="block text-xs text-slate-500 mb-1">Description</label>
               <textarea rows={5} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 resize-none" />
@@ -328,6 +341,12 @@ export default function TaskDetail() {
                 <p className="text-slate-400 text-xs mb-1">Assignee</p>
                 <p className="font-medium text-slate-900">{task.assignee_name || 'N/A'}</p>
               </div>
+              {task.project_lead_name && (
+                <div>
+                  <p className="text-slate-400 text-xs mb-1">Project Lead</p>
+                  <p className="font-medium text-slate-900">{task.project_lead_name}</p>
+                </div>
+              )}
               <div>
                 <p className="text-slate-400 text-xs mb-1">Due Date</p>
                 <p className="font-medium text-slate-900">{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A'}</p>

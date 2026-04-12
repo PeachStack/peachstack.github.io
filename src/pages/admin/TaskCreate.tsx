@@ -10,7 +10,7 @@ export default function TaskCreate() {
   const navigate = useNavigate();
   const [interns, setInterns] = useState<Array<{ id: string; name: string; intern_role?: string }>>([]);
   const [assignMode, setAssignMode] = useState<'individual' | 'role'>('individual');
-  const [form, setForm] = useState({ title: '', project_label: '', description: '', assigned_to: '', assigned_role: '', priority: 'medium', due_date: '', estimated_hours: '', tags: '' });
+  const [form, setForm] = useState({ title: '', project_label: '', description: '', assigned_to: '', assigned_role: '', project_lead_id: '', priority: 'medium', due_date: '', estimated_hours: '', tags: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -26,6 +26,7 @@ export default function TaskCreate() {
       const body: Record<string, any> = {
         title: form.title,
         project_label: form.project_label || null,
+        project_lead_id: form.project_label && form.project_lead_id ? form.project_lead_id : null,
         description: form.description,
         priority: form.priority,
         due_date: form.due_date || null,
@@ -65,6 +66,18 @@ export default function TaskCreate() {
           <input value={form.project_label} onChange={e => setForm(p => ({ ...p, project_label: e.target.value }))} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent" placeholder="e.g. Client Website Build, Sales Outreach Q3" />
           <p className="mt-1 text-xs text-slate-400">Group related tasks under the same label for easy filtering.</p>
         </div>
+        {form.project_label && (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Project Lead <span className="text-slate-400 font-normal">(optional)</span></label>
+            <select value={form.project_lead_id} onChange={e => setForm(p => ({ ...p, project_lead_id: e.target.value }))} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400">
+              <option value="">No lead</option>
+              {interns.map(i => (
+                <option key={i.id} value={i.id}>{i.name}{i.intern_role ? `, ${i.intern_role}` : ''}</option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-slate-400">Designate an intern to lead this project group.</p>
+          </div>
+        )}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">Description *</label>
           <textarea required rows={5} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent resize-none" placeholder="Describe the task..." />

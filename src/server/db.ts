@@ -254,6 +254,7 @@ export async function initDb() {
     db.execute({ sql: "ALTER TABLE tasks ADD COLUMN estimated_hours REAL", args: [] }),
     db.execute({ sql: "ALTER TABLE tasks ADD COLUMN actual_hours REAL", args: [] }),
     db.execute({ sql: "ALTER TABLE tasks ADD COLUMN project_label TEXT", args: [] }),
+    db.execute({ sql: "ALTER TABLE tasks ADD COLUMN project_lead_id TEXT", args: [] }),
   ]);
 
   // Seed default platform settings

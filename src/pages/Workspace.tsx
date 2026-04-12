@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { CheckCircle2, Clock, Calendar, ListTodo, MessageSquare, Save, X, Tag, User } from 'lucide-react';
+import { CheckCircle2, Clock, Calendar, ListTodo, MessageSquare, Save, Send, X, Tag, User } from 'lucide-react';
 import { useState, useEffect, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
@@ -17,6 +17,8 @@ interface ApiTask {
   tags: string[];
   points?: number;
   project_label?: string;
+  project_lead_id?: string;
+  project_lead_name?: string;
   admin_feedback?: string;
   admin_score?: number;
 }
@@ -210,7 +212,47 @@ function ProfileSetupModal({ onComplete }: { onComplete: (name: string) => void 
   );
 }
 
-function TaskDetailModal({ task, onClose, onStatusChange }: { task: ApiTask; onClose: () => void; onStatusChange: (id: string, status: string) => void }) {
+interface TaskComment { id: string; content: string; author_name: string; author_role?: string; created_at: string; }
+interface TaskDetail extends ApiTask { comments: TaskComment[]; }
+
+function parseUTC(dt?: string) {
+  if (!dt) return '';
+  const d = new Date(dt.endsWith('Z') ? dt : dt + 'Z');
+  return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+function TaskDetailModal({ task, userId, onClose, onStatusChange }: { task: ApiTask; userId?: string; onClose: () => void; onStatusChange: (id: string, status: string) => void }) {
+  const [taskDetail, setTaskDetail] = useState<TaskDetail | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [sendingComment, setSendingComment] = useState(false);
+
+  const loadDetail = () => {
+    setLoadingDetail(true);
+    fetch(apiUrl(`/api/workspace/tasks/${task.id}`), { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => setTaskDetail(data))
+      .finally(() => setLoadingDetail(false));
+  };
+
+  useEffect(() => { loadDetail(); }, [task.id]);
+
+  const handleAddComment = async () => {
+    if (!commentText.trim()) return;
+    setSendingComment(true);
+    try {
+      await fetch(apiUrl(`/api/tasks/${task.id}/comments`), {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: commentText }),
+      });
+      setCommentText('');
+      loadDetail();
+    } finally {
+      setSendingComment(false);
+    }
+  };
+
   const getPriorityStyle = (priority: string) => {
     if (priority === 'urgent' || priority === 'high') return 'bg-red-50 text-red-600';
     if (priority === 'medium') return 'bg-amber-50 text-amber-600';
@@ -317,6 +359,50 @@ function TaskDetailModal({ task, onClose, onStatusChange }: { task: ApiTask; onC
             </div>
           )}
 
+          {/* Comments thread */}
+          <div className="border-t border-slate-100 pt-4">
+            <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-1.5">
+              <MessageSquare size={14} />
+              Comments {taskDetail ? `(${taskDetail.comments.length})` : ''}
+            </h4>
+            {loadingDetail ? (
+              <div className="flex justify-center py-4"><div className="h-5 w-5 border-2 border-peach-500 border-t-transparent rounded-full animate-spin" /></div>
+            ) : (
+              <div className="space-y-3 mb-3 max-h-48 overflow-y-auto">
+                {!taskDetail?.comments.length ? (
+                  <p className="text-xs text-slate-400">No comments yet.</p>
+                ) : taskDetail.comments.map(c => (
+                  <div key={c.id} className={cn('rounded-xl p-3', c.author_role === 'admin' || c.author_role === 'superadmin' ? 'bg-peach-50 border border-peach-100' : 'bg-slate-50 border border-slate-100')}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-bold text-slate-900">{c.author_name}</span>
+                      {(c.author_role === 'admin' || c.author_role === 'superadmin') && (
+                        <span className="text-[10px] font-bold text-peach-600 bg-peach-100 px-1.5 py-0.5 rounded uppercase tracking-wide">Admin</span>
+                      )}
+                      <span className="text-[10px] text-slate-400 ml-auto">{parseUTC(c.created_at)}</span>
+                    </div>
+                    <p className="text-sm text-slate-700 leading-relaxed">{c.content}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-2 mt-2">
+              <input
+                value={commentText}
+                onChange={e => setCommentText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddComment(); } }}
+                placeholder="Add a comment..."
+                className="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent"
+              />
+              <button
+                onClick={handleAddComment}
+                disabled={sendingComment || !commentText.trim()}
+                className="p-2 bg-peach-500 hover:bg-peach-600 text-white rounded-xl transition-colors disabled:opacity-50"
+              >
+                <Send size={16} />
+              </button>
+            </div>
+          </div>
+
           {!isCompleted && (
             <div className="border-t border-slate-100 pt-4">
               <p className="text-xs text-slate-500 mb-3">
@@ -368,6 +454,7 @@ export default function Workspace() {
   const [tasks, setTasks] = useState<ApiTask[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [userName, setUserName] = useState('');
+  const [userId, setUserId] = useState('');
   const [authChecked, setAuthChecked] = useState(false);
   const [loadingTasks, setLoadingTasks] = useState(true);
   const [loadingCalendar, setLoadingCalendar] = useState(true);
@@ -429,6 +516,7 @@ export default function Workspace() {
           navigate('/admin/dashboard', { replace: true });
           return;
         }
+        if (active && data?.user?.id) setUserId(data.user.id);
         if (active) setAuthChecked(true);
         loadWorkspaceData();
       })
@@ -500,6 +588,7 @@ export default function Workspace() {
       {selectedTask && (
         <TaskDetailModal
           task={selectedTask}
+          userId={userId}
           onClose={() => setSelectedTask(null)}
           onStatusChange={updateTaskStatus}
         />
@@ -645,26 +734,47 @@ export default function Workspace() {
 
                   return (
                     <div className="space-y-6">
-                      {groupKeys.map(key => (
-                        <div key={key || '__ungrouped__'}>
-                          {key ? (
-                            <div className="flex items-center gap-2 mb-3">
-                              <Tag size={14} className="text-peach-500 shrink-0" />
-                              <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">{key}</h3>
-                              <div className="flex-1 h-px bg-slate-100" />
-                              <span className="text-xs text-slate-400">{taskGroups[key].length}</span>
+                      {groupKeys.map(key => {
+                        const groupTasks = taskGroups[key];
+                        const completedCount = groupTasks.filter(t => t.status === 'completed').length;
+                        const totalCount = groupTasks.length;
+                        const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+                        const leadName = groupTasks.find(t => t.project_lead_name)?.project_lead_name;
+                        const isLead = leadName && groupTasks.some(t => t.project_lead_id === userId);
+                        return (
+                          <div key={key || '__ungrouped__'}>
+                            {key ? (
+                              <div className="mb-3">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <Tag size={14} className="text-peach-500 shrink-0" />
+                                  <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">{key}</h3>
+                                  {leadName && (
+                                    <span className="text-xs text-slate-500">· Lead: {leadName}</span>
+                                  )}
+                                  {isLead && (
+                                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">👑 You're leading this project</span>
+                                  )}
+                                  <div className="flex-1 h-px bg-slate-100" />
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-20 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                      <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${progressPercent}%` }} />
+                                    </div>
+                                    <span className="text-xs text-slate-400">{completedCount}/{totalCount}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 mb-3">
+                                <h3 className="text-sm font-semibold text-slate-400">Ungrouped</h3>
+                                <div className="flex-1 h-px bg-slate-100" />
+                              </div>
+                            )}
+                            <div className="space-y-4">
+                              {groupTasks.map(task => <TaskCard key={task.id} task={task} />)}
                             </div>
-                          ) : (
-                            <div className="flex items-center gap-2 mb-3">
-                              <h3 className="text-sm font-semibold text-slate-400">Ungrouped</h3>
-                              <div className="flex-1 h-px bg-slate-100" />
-                            </div>
-                          )}
-                          <div className="space-y-4">
-                            {taskGroups[key].map(task => <TaskCard key={task.id} task={task} />)}
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   );
                 })()

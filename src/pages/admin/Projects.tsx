@@ -160,13 +160,19 @@ function ProjectModal({
 export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [selected, setSelected] = useState<Project | null | undefined>(undefined);
 
   const fetchProjects = () => {
     setLoading(true);
+    setFetchError(false);
     fetch(apiUrl('/api/admin/projects'), { credentials: 'include' })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error('Failed to fetch');
+        return r.json();
+      })
       .then(data => setProjects(Array.isArray(data) ? data : []))
+      .catch(() => setFetchError(true))
       .finally(() => setLoading(false));
   };
 
@@ -200,6 +206,11 @@ export default function Projects() {
       {loading ? (
         <div className="flex items-center justify-center py-16">
           <div className="h-8 w-8 border-4 border-peach-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : fetchError ? (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-2xl text-sm flex items-center justify-between">
+          <span>Failed to load projects. Please try again.</span>
+          <button onClick={fetchProjects} className="ml-4 text-sm font-bold underline">Retry</button>
         </div>
       ) : projects.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-16 text-center text-slate-400">

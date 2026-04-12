@@ -335,22 +335,14 @@ export default function Workspace() {
     const savedName = localStorage.getItem('peachstack_user_name');
     if (savedName) setUserName(savedName.split(' ')[0]);
 
-    // Redirect admins to their own dashboard
-    fetch(apiUrl('/api/me'), { credentials: 'include' })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data?.user && (data.user.role === 'admin' || data.user.role === 'superadmin' || data.user.isAdmin)) {
-          navigate('/admin/dashboard', { replace: true });
-          return;
-        }
-      })
-      .catch(() => {});
+    let active = true;
 
-    // Check if profile setup is needed (no university set)
-    fetch(apiUrl('/api/workspace/profile'), { credentials: 'include' })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data) {
+    const loadWorkspaceData = () => {
+      // Check if profile setup is needed (no university set)
+      fetch(apiUrl('/api/workspace/profile'), { credentials: 'include' })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (!active || !data) return;
           // Sync the display name from server
           if (data.name) {
             setUserName(data.name.split(' ')[0]);
@@ -360,31 +352,50 @@ export default function Workspace() {
           if (!data.university) {
             setShowProfileSetup(true);
           }
+        })
+        .catch(() => {});
+
+      fetch(apiUrl('/api/workspace/tasks'), { credentials: 'include' })
+        .then(r => r.ok ? r.json() : [])
+        .then(data => { if (active) setTasks(Array.isArray(data) ? data : []); })
+        .catch(() => { if (active) setTasks([]); })
+        .finally(() => { if (active) setLoadingTasks(false); });
+
+      fetch(apiUrl('/api/workspace/calendar'), { credentials: 'include' })
+        .then(r => r.ok ? r.json() : [])
+        .then(data => { if (active) setCalendarEvents(Array.isArray(data) ? data : []); })
+        .catch(() => { if (active) setCalendarEvents([]); })
+        .finally(() => { if (active) setLoadingCalendar(false); });
+    };
+
+    // Check admin status first — only load workspace data if the user is NOT an admin.
+    // This prevents the profile-setup modal from appearing for admins before the redirect fires.
+    fetch(apiUrl('/api/me'), { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!active) return;
+        if (data?.user && (data.user.role === 'admin' || data.user.role === 'superadmin' || data.user.isAdmin)) {
+          navigate('/admin/dashboard', { replace: true });
+          return;
         }
+        loadWorkspaceData();
       })
-      .catch(() => {});
-
-    fetch(apiUrl('/api/workspace/tasks'), { credentials: 'include' })
-      .then(r => r.ok ? r.json() : [])
-      .then(data => setTasks(Array.isArray(data) ? data : []))
-      .catch(() => setTasks([]))
-      .finally(() => setLoadingTasks(false));
-
-    fetch(apiUrl('/api/workspace/calendar'), { credentials: 'include' })
-      .then(r => r.ok ? r.json() : [])
-      .then(data => setCalendarEvents(Array.isArray(data) ? data : []))
-      .catch(() => setCalendarEvents([]))
-      .finally(() => setLoadingCalendar(false));
+      .catch(() => {
+        if (active) loadWorkspaceData();
+      });
 
     const fetchUnread = () => {
       fetch(apiUrl('/api/messages/unread/count'), { credentials: 'include' })
         .then(r => r.ok ? r.json() : { count: 0 })
-        .then(data => setUnreadMessages(data.count || 0))
+        .then(data => { if (active) setUnreadMessages(data.count || 0); })
         .catch(() => {});
     };
     fetchUnread();
     const msgInterval = setInterval(fetchUnread, 30000);
-    return () => clearInterval(msgInterval);
+    return () => {
+      active = false;
+      clearInterval(msgInterval);
+    };
   }, [navigate]);
 
   const updateTaskStatus = async (id: string, status: string) => {

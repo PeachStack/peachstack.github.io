@@ -18,6 +18,7 @@ export default function Tasks() {
   const [error, setError] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const fetchTasks = () => {
     setLoading(true);
@@ -50,12 +51,20 @@ export default function Tasks() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
+    setDeleteError('');
     try {
-      await fetch(apiUrl(`/api/admin/tasks/${deleteTarget.id}`), {
+      const res = await fetch(apiUrl(`/api/admin/tasks/${deleteTarget.id}`), {
         method: 'DELETE', credentials: 'include',
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setDeleteError((data as any).message || 'Failed to delete task. Please try again.');
+        return;
+      }
       setTasks(prev => prev.filter(t => t.id !== deleteTarget.id));
       setDeleteTarget(null);
+    } catch {
+      setDeleteError('Network error. Please try again.');
     } finally {
       setDeleting(false);
     }
@@ -70,8 +79,9 @@ export default function Tasks() {
             <p className="text-slate-500 text-sm mb-6">
               This will <span className="font-bold text-red-600">permanently delete</span> "{deleteTarget.title}". This cannot be undone.
             </p>
+            {deleteError && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">{deleteError}</p>}
             <div className="flex gap-3">
-              <button onClick={() => setDeleteTarget(null)} className="flex-1 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+              <button onClick={() => { setDeleteTarget(null); setDeleteError(''); }} className="flex-1 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
                 Cancel
               </button>
               <button onClick={handleDelete} disabled={deleting} className="flex-1 py-3 rounded-xl bg-red-600 text-sm font-bold text-white hover:bg-red-700 transition-colors disabled:opacity-50">

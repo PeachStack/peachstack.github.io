@@ -640,8 +640,12 @@ export async function buildApp() {
   });
 
   app.delete("/api/admin/tasks/:id", adminApiLimiter, requireAdmin, async (req, res) => {
-    await db.execute({ sql: "DELETE FROM tasks WHERE id = ?", args: [req.params.id] });
-    res.json({ message: "Deleted" });
+    try {
+      await db.execute({ sql: "DELETE FROM tasks WHERE id = ?", args: [req.params.id] });
+      res.json({ message: "Deleted" });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to delete task" });
+    }
   });
 
   app.post("/api/admin/tasks/:id/comments", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
@@ -693,36 +697,48 @@ export async function buildApp() {
   });
 
   app.post("/api/admin/projects", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
-    const { title, description, skills_required, deadline, compensation, status, target_role } = req.body;
-    if (!title || !description) return res.status(400).json({ message: "Title and description required" });
-    const id = crypto.randomUUID();
-    await db.execute({
-      sql: "INSERT INTO projects (id, title, description, employer_id, skills_required, deadline, compensation, status, target_role) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      args: [id, title, description, req.user.id, JSON.stringify(skills_required || []), deadline || null, compensation || null, status || "open", target_role || "all"],
-    });
-    res.status(201).json({ id, message: "Project created" });
+    try {
+      const { title, description, skills_required, deadline, compensation, status, target_role } = req.body;
+      if (!title || !description) return res.status(400).json({ message: "Title and description required" });
+      const id = crypto.randomUUID();
+      await db.execute({
+        sql: "INSERT INTO projects (id, title, description, employer_id, skills_required, deadline, compensation, status, target_role) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        args: [id, title, description, req.user.id, JSON.stringify(skills_required || []), deadline || null, compensation || null, status || "open", target_role || "all"],
+      });
+      res.status(201).json({ id, message: "Project created" });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to create project" });
+    }
   });
 
   app.patch("/api/admin/projects/:id", adminApiLimiter, requireAdmin, async (req: any, res: any) => {
-    const { title, description, status, skills_required, deadline, compensation, target_role } = req.body;
-    await db.execute({
-      sql: `UPDATE projects SET
-        title = COALESCE(?, title),
-        description = COALESCE(?, description),
-        status = COALESCE(?, status),
-        skills_required = COALESCE(?, skills_required),
-        deadline = COALESCE(?, deadline),
-        compensation = COALESCE(?, compensation),
-        target_role = COALESCE(?, target_role)
-        WHERE id = ?`,
-      args: [title || null, description || null, status || null, skills_required ? JSON.stringify(skills_required) : null, deadline !== undefined ? deadline : null, compensation !== undefined ? compensation : null, target_role || null, req.params.id],
-    });
-    res.json({ message: "Updated" });
+    try {
+      const { title, description, status, skills_required, deadline, compensation, target_role } = req.body;
+      await db.execute({
+        sql: `UPDATE projects SET
+          title = COALESCE(?, title),
+          description = COALESCE(?, description),
+          status = COALESCE(?, status),
+          skills_required = COALESCE(?, skills_required),
+          deadline = COALESCE(?, deadline),
+          compensation = COALESCE(?, compensation),
+          target_role = COALESCE(?, target_role)
+          WHERE id = ?`,
+        args: [title || null, description || null, status || null, skills_required ? JSON.stringify(skills_required) : null, deadline !== undefined ? deadline : null, compensation !== undefined ? compensation : null, target_role || null, req.params.id],
+      });
+      res.json({ message: "Updated" });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to update project" });
+    }
   });
 
   app.delete("/api/admin/projects/:id", adminApiLimiter, requireAdmin, async (req, res) => {
-    await db.execute({ sql: "DELETE FROM projects WHERE id = ?", args: [req.params.id] });
-    res.json({ message: "Deleted" });
+    try {
+      await db.execute({ sql: "DELETE FROM projects WHERE id = ?", args: [req.params.id] });
+      res.json({ message: "Deleted" });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to delete project" });
+    }
   });
 
   // ─── Messaging Routes ─────────────────────────────────────────────────────────

@@ -1203,6 +1203,17 @@ export async function buildApp() {
     res.json({ message: "Password updated successfully" });
   });
 
+  // ─── Global error handler ────────────────────────────────────────────────────
+  // Must be registered last, after all routes. Catches any unhandled async
+  // error thrown inside a route handler (e.g. a Turso connection failure) and
+  // returns a JSON response instead of Express's default HTML error page.
+  // Without this, res.json() on the client throws SyntaxError → "Network error".
+  app.use((err: any, _req: any, res: any, _next: any) => {
+    console.error('[API error]', err?.message || err);
+    const status = typeof err?.status === 'number' ? err.status : 500;
+    res.status(status).json({ message: err?.message || 'Internal server error. Please try again.' });
+  });
+
   return app;
 }
 

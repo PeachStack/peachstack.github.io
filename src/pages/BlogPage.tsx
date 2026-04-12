@@ -1,9 +1,20 @@
 import { motion } from 'motion/react';
 import { BookOpen, Linkedin } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 
 export default function Blog() {
   return (
     <div className="min-h-screen bg-slate-50">
+      <Helmet>
+        <title>Blog — Peach Stack | Early Career Insights & Atlanta Business</title>
+        <meta name="description" content="Insights on early career development, Atlanta's business landscape, and what it actually takes to build real skills before you graduate." />
+        <link rel="canonical" href="https://peachstack.github.io/blog" />
+        <meta property="og:title" content="Blog — Peach Stack | Early Career Insights & Atlanta Business" />
+        <meta property="og:description" content="Insights on early career development, Atlanta's business landscape, and what it actually takes to build real skills before you graduate." />
+        <meta property="og:url" content="https://peachstack.github.io/blog" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://peachstack.github.io/peach-logo.png" />
+      </Helmet>
       <section className="bg-slate-950 py-24 lg:py-32 relative overflow-hidden">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <motion.div

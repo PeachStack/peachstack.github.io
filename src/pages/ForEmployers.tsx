@@ -22,6 +22,28 @@ export default function ForEmployers() {
         <meta name="twitter:title" content="For Employers — Hire Pre-Vetted Student Talent | Peach Stack" />
         <meta name="twitter:description" content="Hire motivated, pre-vetted college students for real projects through Peach Stack. Access early talent in Atlanta and beyond. Simple onboarding, real results." />
         <meta name="twitter:image" content="https://peachstack.github.io/peach-logo.png" />
+        <script type="application/ld+json">{`
+          {
+            "@context": "https://schema.org",
+            "@type": "Service",
+            "name": "Peach Stack Employer Talent Service",
+            "description": "Hire motivated, pre-vetted college students for real projects. Peach Stack matches employers with managed student interns across sales, consulting, tech, and marketing tracks.",
+            "provider": {
+              "@type": "Organization",
+              "name": "Peach Stack",
+              "url": "https://peachstack.github.io"
+            },
+            "areaServed": {
+              "@type": "Country",
+              "name": "United States"
+            },
+            "audience": {
+              "@type": "BusinessAudience",
+              "audienceType": "Employers, Small Businesses, Startups"
+            },
+            "url": "https://peachstack.github.io/for-employers"
+          }
+        `}</script>
       </Helmet>
       {/* Hero Section */}
       <section className="relative bg-slate-950 py-24 lg:py-32 overflow-hidden">

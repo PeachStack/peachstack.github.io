@@ -16,6 +16,59 @@ export default function Landing() {
         <title>Peach Stack — Turn Zero Experience into a Career Stack</title>
         <meta name="description" content="Real internships. Real projects. Real career outcomes. Peach Stack connects motivated students with vetted employers for high-impact work. Based in Atlanta." />
         <link rel="canonical" href="https://peachstack.github.io/" />
+        <meta property="og:title" content="Peach Stack — Turn Zero Experience into a Career Stack" />
+        <meta property="og:description" content="Real internships. Real projects. Real career outcomes. Peach Stack connects motivated students with vetted employers for high-impact work. Based in Atlanta." />
+        <meta property="og:url" content="https://peachstack.github.io/" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://peachstack.github.io/peach-logo.png" />
+        <script type="application/ld+json">{`
+          {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What is Peach Stack?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Peach Stack is an early-career platform based in Atlanta, Georgia that connects motivated college students with vetted employers for real, high-impact project-based internships. We place students in roles across sales, consulting, tech, and marketing."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How do I apply to Peach Stack as a student?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Students can apply at https://peachstack.github.io/apply. Fill out the application form and you will be matched to a cohort and role track based on your interests and skills."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What internship tracks does Peach Stack offer?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Peach Stack offers four internship tracks: Sales & Business Development, Consulting (Business Track), Consulting (Tech Track), and Marketing."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How can employers hire through Peach Stack?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Employers can submit an inquiry at https://peachstack.github.io/for-employers. Peach Stack will match you with a curated cohort of pre-vetted students ready to work on your projects."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is Peach Stack only in Atlanta?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Peach Stack is based in Atlanta, Georgia but accepts students and serves employers nationally across the United States."
+                }
+              }
+            ]
+          }
+        `}</script>
       </Helmet>
       <section className="relative bg-white pb-20 pt-24 lg:pt-32">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

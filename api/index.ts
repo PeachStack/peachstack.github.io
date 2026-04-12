@@ -12,6 +12,15 @@ async function getHandler() {
 }
 
 export default async function apiHandler(req: any, res: any) {
-  const h = await getHandler();
-  h(req, res);
+  try {
+    const h = await getHandler();
+    h(req, res);
+  } catch (err: any) {
+    // If initialization failed, reset so the next request retries cleanly.
+    handler = null;
+    console.error('[API init error]', err?.message || err);
+    if (!res.headersSent) {
+      res.status(503).json({ message: 'Service temporarily unavailable. Please try again in a moment.' });
+    }
+  }
 }

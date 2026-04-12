@@ -230,6 +230,19 @@ export async function initDb() {
       value TEXT NOT NULL,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS project_assignments (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      status TEXT DEFAULT 'in_progress' CHECK(status IN ('in_progress', 'in_review', 'completed')),
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(project_id, user_id),
+      FOREIGN KEY(project_id) REFERENCES projects(id),
+      FOREIGN KEY(user_id) REFERENCES users(id)
+    );
   `);
 
   // Add missing columns to existing tables (safe to run multiple times)

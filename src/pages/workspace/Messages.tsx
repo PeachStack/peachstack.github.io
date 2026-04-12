@@ -9,6 +9,7 @@ interface Conversation { other_user_id: string; other_user_name: string; other_u
 interface Message { id: string; sender_id: string; recipient_id: string; subject?: string; body: string; read: number; created_at: string; sender_name: string; }
 interface Group { id: string; name: string; description?: string; role_filter?: string; member_count: number; last_message?: string; last_message_at?: string; unread_count: number; }
 interface GroupMessage { id: string; group_id: string; sender_id: string; sender_name: string; body: string; created_at: string; }
+interface GroupMember { id: string; name: string; role: string; }
 
 type ActiveThread = { type: 'dm'; userId: string } | { type: 'group'; groupId: string } | null;
 
@@ -19,6 +20,8 @@ export default function WorkspaceMessages() {
   const [activeThread, setActiveThread] = useState<ActiveThread>(null);
   const [dmThread, setDmThread] = useState<Message[]>([]);
   const [groupThread, setGroupThread] = useState<GroupMessage[]>([]);
+  const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
+  const [showMembers, setShowMembers] = useState(false);
   const [currentUserId, setCurrentUserId] = useState('');
   const [compose, setCompose] = useState(false);
   const [newMsg, setNewMsg] = useState({ recipient_id: '', subject: '', body: '' });
@@ -67,6 +70,7 @@ export default function WorkspaceMessages() {
   // Load group thread
   useEffect(() => {
     if (activeThread?.type !== 'group') return;
+    setShowMembers(false);
     fetch(apiUrl(`/api/messages/groups/${activeThread.groupId}`), { credentials: 'include' })
       .then(r => r.ok ? r.json() : [])
       .then(data => {
@@ -74,12 +78,15 @@ export default function WorkspaceMessages() {
         fetch(apiUrl(`/api/messages/groups/${activeThread.groupId}/read`), { method: 'PATCH', credentials: 'include' });
         loadGroups();
       });
+    fetch(apiUrl(`/api/messages/groups/${activeThread.groupId}/members`), { credentials: 'include' })
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setGroupMembers(Array.isArray(data) ? data : []));
   }, [activeThread, loadGroups]);
 
   useEffect(() => { threadEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [dmThread, groupThread]);
 
   const openDm = (userId: string) => { setActiveThread({ type: 'dm', userId }); setCompose(false); setMobileView('thread'); };
-  const openGroup = (groupId: string) => { setActiveThread({ type: 'group', groupId }); setCompose(false); setMobileView('thread'); };
+  const openGroup = (groupId: string) => { setActiveThread({ type: 'group', groupId }); setCompose(false); setMobileView('thread'); setShowMembers(false); };
 
   const sendReply = async () => {
     if (!replyBody.trim() || !activeThread) return;
@@ -274,11 +281,30 @@ export default function WorkspaceMessages() {
                 <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-3">
                   <button onClick={() => { setActiveThread(null); setMobileView('list'); }} className="p-1 text-slate-400 hover:text-slate-700 lg:hidden"><ArrowLeft size={18} /></button>
                   <div className="h-9 w-9 rounded-full bg-peach-100 text-peach-600 flex items-center justify-center"><Users size={16} /></div>
-                  <div>
+                  <div className="flex-1">
                     <p className="font-bold text-slate-900 text-sm">{activeGroup?.name}</p>
                     <p className="text-xs text-slate-400">{activeGroup?.member_count} members</p>
                   </div>
+                  <button
+                    onClick={() => setShowMembers(!showMembers)}
+                    className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors", showMembers ? "bg-peach-100 text-peach-700" : "bg-slate-100 text-slate-600 hover:bg-slate-200")}
+                  >
+                    <Users size={13} />{showMembers ? 'Hide' : 'Members'}
+                  </button>
                 </div>
+                {showMembers && (
+                  <div className="border-b border-slate-100 px-4 py-3 bg-slate-50/60">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Group Members</p>
+                    <div className="flex flex-wrap gap-2">
+                      {groupMembers.map((m: GroupMember) => (
+                        <div key={m.id} className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-1">
+                          <div className="h-5 w-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] font-bold">{m.name[0]}</div>
+                          <span className="text-xs font-medium text-slate-700">{m.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
                   {groupThread.map(msg => {
                     const isMine = msg.sender_id === currentUserId;

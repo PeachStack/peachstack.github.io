@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { apiUrl } from '../../lib/api';
 import StatusBadge from '../../components/admin/StatusBadge';
-import { Plus, X, Edit2, Trash2, ChevronDown } from 'lucide-react';
+import { Plus, X, Edit2, Trash2, ChevronDown, Users } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 interface Project {
   id: string;
@@ -13,6 +14,16 @@ interface Project {
   compensation?: string;
   deadline?: string;
   target_role?: string;
+}
+
+interface ProjectAssignment {
+  id: string;
+  project_id: string;
+  user_id: string;
+  name: string;
+  email: string;
+  status: string;
+  created_at: string;
 }
 
 const STATUS_OPTIONS = ['open', 'in-progress', 'closed'];
@@ -30,6 +41,9 @@ function ProjectModal({
   onDeleted?: () => void;
 }) {
   const isNew = !project;
+  const [tab, setTab] = useState<'edit' | 'participants'>('edit');
+  const [assignments, setAssignments] = useState<ProjectAssignment[]>([]);
+  const [loadingAssignments, setLoadingAssignments] = useState(false);
   const [form, setForm] = useState({
     title: project?.title || '',
     description: project?.description || '',
@@ -43,6 +57,26 @@ function ProjectModal({
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  useEffect(() => {
+    if (tab === 'participants' && project) {
+      setLoadingAssignments(true);
+      fetch(apiUrl(`/api/admin/projects/${project.id}/assignments`), { credentials: 'include' })
+        .then(r => r.ok ? r.json() : [])
+        .then(data => setAssignments(Array.isArray(data) ? data : []))
+        .finally(() => setLoadingAssignments(false));
+    }
+  }, [tab, project]);
+
+  const markAssignment = async (userId: string, status: string) => {
+    if (!project) return;
+    await fetch(apiUrl(`/api/admin/projects/${project.id}/assignments/${userId}`), {
+      method: 'PATCH', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    setAssignments(prev => prev.map(a => a.user_id === userId ? { ...a, status } : a));
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -87,10 +121,56 @@ function ProjectModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-8 my-auto">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="font-display text-xl font-bold text-slate-900">{isNew ? 'Create Project' : 'Edit Project'}</h2>
           <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-colors"><X size={20} /></button>
         </div>
+        {!isNew && (
+          <div className="flex gap-1 mb-5 bg-slate-100 rounded-xl p-1">
+            <button onClick={() => setTab('edit')} className={cn("flex-1 py-2 rounded-lg text-sm font-semibold transition-colors", tab === 'edit' ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700")}>Edit</button>
+            <button onClick={() => setTab('participants')} className={cn("flex-1 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-1.5", tab === 'participants' ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700")}>
+              <Users size={14} />Participants
+            </button>
+          </div>
+        )}
+        {tab === 'participants' && !isNew ? (
+          <div className="space-y-3">
+            {loadingAssignments ? (
+              <div className="flex items-center justify-center py-8"><div className="h-6 w-6 border-4 border-peach-500 border-t-transparent rounded-full animate-spin" /></div>
+            ) : assignments.length === 0 ? (
+              <div className="text-center py-8 text-slate-400">
+                <Users size={28} className="mx-auto mb-2 opacity-40" />
+                <p className="text-sm font-medium">No participants yet</p>
+                <p className="text-xs mt-1">Interns join projects from their workspace</p>
+              </div>
+            ) : assignments.map(a => (
+              <div key={a.user_id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                <div className="h-8 w-8 rounded-full bg-peach-100 text-peach-600 flex items-center justify-center font-bold text-sm shrink-0">{a.name?.[0] || '?'}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 truncate">{a.name}</p>
+                  <p className="text-xs text-slate-400 truncate">{a.email}</p>
+                </div>
+                <div className="relative">
+                  <select
+                    value={a.status}
+                    onChange={e => markAssignment(a.user_id, e.target.value)}
+                    className={cn("appearance-none pl-3 pr-7 py-1.5 rounded-lg text-xs font-bold border-0 focus:outline-none focus:ring-2 focus:ring-peach-400",
+                      a.status === 'completed' ? 'bg-green-100 text-green-700' :
+                      a.status === 'in_review' ? 'bg-blue-100 text-blue-700' :
+                      'bg-amber-100 text-amber-700'
+                    )}
+                  >
+                    <option value="in_progress">In Progress</option>
+                    <option value="in_review">In Review</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                  <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-60" />
+                </div>
+              </div>
+            ))}
+            <button type="button" onClick={onClose} className="w-full mt-4 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">Close</button>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Title *</label>
@@ -152,6 +232,7 @@ function ProjectModal({
             </button>
           </div>
         </form>
+        )}
       </div>
     </div>
   );
